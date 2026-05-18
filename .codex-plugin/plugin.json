@@ -1,0 +1,8 @@
+{
+  "name": "obsidian-master-plugin",
+  "version": "0.1.0",
+  "description": "Local development repo for the Obsidian Master Plugin.",
+  "interface": {
+    "displayName": "Obsidian Master Plugin"
+  }
+}

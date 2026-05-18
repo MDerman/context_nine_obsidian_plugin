@@ -1,0 +1,27 @@
+{
+  "name": "obsidian-master-plugin",
+  "version": "0.1.0",
+  "description": "Workspace-specific Obsidian helpers for TaskNotes capture and attachment routing.",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc --noEmit && node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs",
+    "test": "vitest run",
+    "install-vault": "npm run build && mkdir -p '/Users/matthewderman/My Drive/Workspace/.obsidian/plugins/obsidian-master-plugin' && cp main.js manifest.json styles.css '/Users/matthewderman/My Drive/Workspace/.obsidian/plugins/obsidian-master-plugin/'"
+  },
+  "keywords": [
+    "obsidian",
+    "tasknotes",
+    "attachments"
+  ],
+  "author": "Matthew Derman",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.17.24",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "^1.8.7",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}

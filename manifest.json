@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-master-plugin",
+  "name": "Obsidian Master Plugin",
+  "version": "0.1.0",
+  "minAppVersion": "1.7.0",
+  "description": "Workspace-specific TaskNotes capture, vault command cockpit, and attachment routing commands.",
+  "author": "Matthew Derman",
+  "isDesktopOnly": true
+}
