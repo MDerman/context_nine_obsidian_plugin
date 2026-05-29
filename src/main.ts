@@ -40,13 +40,13 @@ export default class ContextNinePlugin extends Plugin {
       (leaf: WorkspaceLeaf) => new VaultCockpitView(leaf, this)
     );
 
-    this.addRibbonIcon("square-terminal", "Open vault cockpit", () => {
+    this.addRibbonIcon("square-terminal", "Open vault command center", () => {
       void this.openVaultCockpit();
     });
 
     this.addCommand({
       id: "open-vault-cockpit",
-      name: "Open vault cockpit",
+      name: "Open vault command center",
       callback: () => {
         void this.openVaultCockpit();
       },

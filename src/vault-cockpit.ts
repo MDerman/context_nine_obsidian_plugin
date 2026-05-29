@@ -42,7 +42,7 @@ export class VaultCockpitView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Vault Cockpit";
+    return "Vault Command Center";
   }
 
   getIcon(): IconName {
@@ -67,9 +67,6 @@ export class VaultCockpitView extends ItemView {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.addClass("omp-vault-cockpit");
-
-    const header = containerEl.createDiv({ cls: "omp-vault-cockpit-header" });
-    header.createEl("h3", { text: "Vault Cockpit" });
 
     this.buttons.clear();
 
@@ -363,7 +360,7 @@ export class VaultCockpitView extends ItemView {
     });
     actions.createEl("button", { text: "Copy" }).addEventListener("click", () => {
       void navigator.clipboard.writeText(this.logEntries.map((entry) => entry.text).join(""));
-      new Notice("Copied vault cockpit output.");
+      new Notice("Copied vault command center output.");
     });
 
     this.logEl = this.logContainerEl.createDiv({ cls: "omp-vault-cockpit-log" });

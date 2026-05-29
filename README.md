@@ -2,7 +2,7 @@
 
 TaskNotes capture, context routing, vault command cockpit, and attachment cleanup tools for Obsidian.
 
-Context Nine is desktop-only. Vault Cockpit and background sync commands use local Node.js process APIs.
+Context Nine is desktop-only. Vault Command Center and background sync commands use local Node.js process APIs.
 
 ## Features
 
@@ -12,7 +12,7 @@ Context Nine is desktop-only. Vault Cockpit and background sync commands use loc
 - Route pasted or dropped inbox attachments from `master/_obsidian/attachments/_inbox`.
 - Move TaskNotes files when context fields change.
 - Add file delete actions for file explorer items, Bases kanban cards, and TaskNotes edit modals where possible.
-- Open a right-sidebar Vault Cockpit for common `vault` terminal commands.
+- Open a right-sidebar Vault Command Center for common `vault` terminal commands.
 
 ## Commands
 
@@ -24,11 +24,11 @@ Context Nine is desktop-only. Vault Cockpit and background sync commands use loc
 | Route TaskNotes files by context | Moves TaskNotes files to folders matching their context metadata. |
 | Delete hovered or selected file | Uses Obsidian delete confirmation and trash behavior. |
 | New note in hovered folder | Creates `Untitled.md` in hovered file-explorer folder, falling back to Obsidian new note behavior. |
-| Open vault cockpit | Opens command runner panel in right sidebar. |
+| Open vault command center | Opens command runner panel in right sidebar. |
 
-## Vault Cockpit
+## Vault Command Center
 
-Vault Cockpit runs the local `vault` command dispatcher without leaving Obsidian. Default buttons include refresh, sync, context, content schedules, attachment dry run/apply, and profile sync.
+Vault Command Center runs the local `vault` command dispatcher without leaving Obsidian. Default buttons include refresh, sync, context, content schedules, attachment dry run/apply, and profile sync.
 
 Normal click runs a command directly. `Cmd+Click` opens an arguments modal and appends parsed arguments to the base command. Output streams live into the panel with stdout, stderr, status, exit code, and timestamps visible after completion.
 
