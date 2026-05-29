@@ -249,21 +249,109 @@
 @media (min-width: 900px) {
   .tasknotes-plugin.minimalist-task-modal.split-layout-enabled.expanded .modal,
   .tasknotes-plugin.minimalist-task-modal.split-layout-enabled.expanded.modal {
-    width: min(90vw, 1065px) !important;
+    width: min(90vw, 1145px) !important;
   }
 
   .tasknotes-plugin.minimalist-task-modal.split-layout-enabled.expanded .modal-split-left {
-    flex-basis: 266px !important;
+    flex-basis: 346px !important;
   }
 }
 
 @media (min-width: 1200px) {
   .tasknotes-plugin.minimalist-task-modal.split-layout-enabled.expanded .modal,
   .tasknotes-plugin.minimalist-task-modal.split-layout-enabled.expanded.modal {
-    width: min(90vw, 1390px) !important;
+    width: min(90vw, 1491px) !important;
   }
 
   .tasknotes-plugin.minimalist-task-modal.split-layout-enabled.expanded .modal-split-left {
-    flex-basis: 336px !important;
+    flex-basis: 437px !important;
   }
+}
+
+.tasknotes-plugin.minimalist-task-modal.omp-task-modal-enhanced .modal-split-left {
+  gap: 0;
+}
+
+.omp-task-modal-enhanced .modal-split-left {
+  gap: 0;
+}
+
+.tasknotes-plugin.minimalist-task-modal.omp-task-modal-enhanced .detail-label,
+.tasknotes-plugin.minimalist-task-modal.omp-task-modal-enhanced .details-container .setting-item-name,
+.omp-task-modal-enhanced .detail-label,
+.omp-task-modal-enhanced .setting-item-name,
+.omp-task-primary-label {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.omp-task-primary-fields {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.omp-task-primary-row {
+  display: grid;
+  grid-template-columns: minmax(86px, 0.42fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.omp-task-primary-dropdown {
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omp-task-primary-dropdown::after {
+  content: "▾";
+  float: right;
+  color: var(--text-muted);
+}
+
+.tasknotes-plugin.minimalist-task-modal.omp-task-modal-enhanced .task-modal__section-separator {
+  display: none;
+}
+
+.omp-task-modal-enhanced .task-modal__section-separator {
+  display: none;
+}
+
+.omp-task-secondary-divider {
+  height: 1px;
+  margin: 14px 0 10px;
+  background: var(--background-modifier-border);
+}
+
+.tasknotes-plugin.minimalist-task-modal.omp-task-modal-enhanced .details-container .setting-item {
+  border: 0;
+  padding: 6px 0;
+}
+
+.omp-task-modal-enhanced .setting-item {
+  border: 0;
+}
+
+.tasknotes-plugin.minimalist-task-modal.omp-task-modal-enhanced .details-container .setting-item-control {
+  min-width: 0;
+}
+
+.tasknotes-plugin.minimalist-task-modal.omp-task-modal-enhanced .details-container input {
+  width: 100%;
+}
+
+.tasknotes-plugin.minimalist-task-modal.omp-task-modal-enhanced .action-bar {
+  margin: 0 0 8px;
+}
+
+.omp-task-modal-native-hidden {
+  display: none !important;
 }

@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import { join } from "path";
 
 export type VaultStream = "stdout" | "stderr";
 export type VaultRunStatus = "idle" | "running" | "succeeded" | "failed";
@@ -43,9 +44,10 @@ export class VaultCommandRunner {
     }
 
     const startedAt = new Date();
-    events.onStart({ spec, command, cwd, startedAt });
+    const resolvedCommand = command === "vault" ? join(cwd, "master/system/scripts/vault.py") : command;
+    events.onStart({ spec, command: resolvedCommand, cwd, startedAt });
 
-    const child = spawn(command, spec.args, {
+    const child = spawn(resolvedCommand, spec.args, {
       cwd,
       env: {
         ...process.env,
@@ -66,7 +68,7 @@ export class VaultCommandRunner {
       this.child = null;
       events.onFinish({
         spec,
-        command,
+        command: resolvedCommand,
         cwd,
         startedAt,
         status: exitCode === 0 ? "succeeded" : "failed",

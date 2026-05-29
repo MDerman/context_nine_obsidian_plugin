@@ -1,6 +1,5 @@
-import { App, Menu, Modal, Notice, Plugin, TAbstractFile, TFile, TFolder, normalizePath } from "obsidian";
+import { App, Menu, Notice, Plugin, TAbstractFile, TFile, TFolder, normalizePath } from "obsidian";
 import { dirname, splitExtension } from "./path-utils";
-import type { TaskNotesPluginLike } from "./types";
 
 interface HoverTarget {
   path: string;
@@ -19,9 +18,6 @@ const PATH_SELECTORS = [
 export class FileActionService {
   private hoveredTarget: HoverTarget | null = null;
   private lastMousePosition: { x: number; y: number } | null = null;
-  private taskModalPatchRestore: (() => void) | null = null;
-  private taskModalObserver: MutationObserver | null = null;
-  private taskModalClosers = new WeakMap<HTMLElement, () => void>();
 
   constructor(private readonly app: App) {}
 
@@ -57,77 +53,6 @@ export class FileActionService {
     plugin.registerDomEvent(document, "contextmenu", (event) => {
       this.showContextMenu(event);
     });
-  }
-
-  patchTaskNotesModal(taskNotes: TaskNotesPluginLike | null): void {
-    const pluginLike = taskNotes as
-      | (TaskNotesPluginLike & {
-          openTaskEditModal?: (task: { path: string; title?: string }, onTaskUpdated?: unknown) => void;
-        })
-      | null;
-    const original = pluginLike?.openTaskEditModal;
-    if (!pluginLike || !original || this.taskModalPatchRestore) {
-      return;
-    }
-
-    pluginLike.openTaskEditModal = (task, onTaskUpdated) => {
-      const openedModals: Modal[] = [];
-      const originalOpen = Modal.prototype.open;
-      Modal.prototype.open = function (this: Modal): void {
-        originalOpen.call(this);
-        openedModals.push(this);
-      };
-
-      try {
-        original.call(pluginLike, task, onTaskUpdated);
-      } finally {
-        Modal.prototype.open = originalOpen;
-      }
-
-      const inject = (): void => {
-        const taskModal =
-          openedModals.find((modal) => this.taskModalElementMatchesPath(modal.modalEl, task.path)) ??
-          openedModals[openedModals.length - 1];
-
-        if (taskModal) {
-          this.injectDeleteIntoTaskModalElement(task.path, taskModal.modalEl, () => taskModal.close());
-          return;
-        }
-
-        this.injectDeleteIntoTaskModal(task.path);
-      };
-
-      window.setTimeout(inject, 100);
-      window.setTimeout(inject, 500);
-    };
-
-    this.taskModalPatchRestore = () => {
-      pluginLike.openTaskEditModal = original;
-      this.taskModalPatchRestore = null;
-    };
-  }
-
-  unpatchTaskNotesModal(): void {
-    this.taskModalPatchRestore?.();
-  }
-
-  registerTaskModalDeleteObserver(plugin: Plugin): void {
-    if (this.taskModalObserver) {
-      return;
-    }
-    const scan = (): void => this.injectDeleteIntoVisibleTaskModals();
-    const observer = new MutationObserver(() => {
-      window.setTimeout(scan, 50);
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    this.taskModalObserver = observer;
-    plugin.register(() => {
-      observer.disconnect();
-      if (this.taskModalObserver === observer) {
-        this.taskModalObserver = null;
-      }
-    });
-    window.setTimeout(scan, 0);
   }
 
   async deleteHoveredOrActiveFile(): Promise<void> {
@@ -195,7 +120,7 @@ export class FileActionService {
     await this.app.workspace.getLeaf(false).openFile(file);
   }
 
-  private async deleteFile(file: TAbstractFile): Promise<boolean> {
+  async deleteFile(file: TAbstractFile): Promise<boolean> {
     const confirmed = await this.app.fileManager.promptForDeletion(file);
     if (!confirmed) {
       return false;
@@ -338,115 +263,4 @@ export class FileActionService {
     return this.app.vault.getAbstractFileByPath(target.path);
   }
 
-  private injectDeleteIntoVisibleTaskModals(): void {
-    const modals = Array.from(document.querySelectorAll(".modal"));
-    for (const modal of modals) {
-      if (!(modal instanceof HTMLElement)) {
-        continue;
-      }
-      const taskPath = this.taskPathFromModal(modal);
-      if (taskPath) {
-        this.injectDeleteIntoTaskModalElement(taskPath, modal);
-      }
-    }
-  }
-
-  private taskPathFromModal(modal: HTMLElement): string | null {
-    if (modal.querySelector(".omp-delete-task-button")) {
-      return null;
-    }
-    const text = modal.textContent ?? "";
-    if (!/Edit task/i.test(text) || !/Task Information/i.test(text)) {
-      return null;
-    }
-    const fileMatch = text.match(/File:\s*([^\n\r]+?\.md)/i);
-    const path = fileMatch?.[1]?.trim();
-    if (!path) {
-      return null;
-    }
-    return this.app.vault.getAbstractFileByPath(path) instanceof TFile ? path : null;
-  }
-
-  private injectDeleteIntoTaskModal(taskPath: string): void {
-    const modals = Array.from(document.querySelectorAll(".modal"));
-    const modal = modals[modals.length - 1];
-    this.injectDeleteIntoTaskModalElement(taskPath, modal);
-  }
-
-  private injectDeleteIntoTaskModalElement(
-    taskPath: string,
-    modal: Element | undefined,
-    closeModal?: () => void
-  ): void {
-    const file = this.app.vault.getAbstractFileByPath(taskPath);
-    if (!(file instanceof TFile)) {
-      return;
-    }
-
-    if (!(modal instanceof HTMLElement)) {
-      return;
-    }
-
-    if (closeModal) {
-      this.taskModalClosers.set(modal, closeModal);
-    }
-
-    if (modal.querySelector(".omp-delete-task-button")) {
-      return;
-    }
-
-    const archiveButton = this.archiveButtonInModal(modal);
-    archiveButton?.addClass("omp-archive-task-button");
-    const buttonRow =
-      archiveButton?.parentElement ??
-      modal.querySelector(".modal-button-container") ??
-      modal.querySelector(".setting-item:last-child .setting-item-control") ??
-      modal;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = "Delete note";
-    button.addClass("mod-warning", "omp-delete-task-button");
-    button.addEventListener("click", async () => {
-      const deleted = await this.deleteFile(file);
-      if (deleted) {
-        this.closeTaskModal(modal);
-      }
-    });
-    if (archiveButton?.parentElement === buttonRow) {
-      archiveButton.insertAdjacentElement("afterend", button);
-    } else {
-      buttonRow.appendChild(button);
-    }
-  }
-
-  private archiveButtonInModal(modal: HTMLElement): HTMLButtonElement | null {
-    const buttons = Array.from(modal.querySelectorAll("button"));
-    return buttons.find((button) => button.textContent?.trim() === "Archive") ?? null;
-  }
-
-  private taskModalElementMatchesPath(modal: Element | undefined, taskPath: string): boolean {
-    if (!(modal instanceof HTMLElement)) {
-      return false;
-    }
-    const text = modal.textContent ?? "";
-    return /Edit task/i.test(text) && text.includes(taskPath);
-  }
-
-  private closeTaskModal(modal: HTMLElement): void {
-    const closeModal = this.taskModalClosers.get(modal);
-    if (closeModal) {
-      closeModal();
-      return;
-    }
-
-    const closeButton =
-      modal.querySelector(".modal-close-button") ??
-      modal.closest(".modal-container")?.querySelector(".modal-close-button");
-    if (closeButton instanceof HTMLElement) {
-      closeButton.click();
-      return;
-    }
-
-    modal.closest(".modal-container")?.remove();
-  }
 }

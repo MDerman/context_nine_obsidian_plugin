@@ -1,5 +1,5 @@
 import { ItemView, Modal, Notice, Setting, type App, type IconName, type WorkspaceLeaf } from "obsidian";
-import type ObsidianMasterPlugin from "./main";
+import type ContextNinePlugin from "./main";
 import { parseAdditionalArgs } from "./vault-args";
 import {
   FALLBACK_VAULT_COMMANDS,
@@ -32,7 +32,7 @@ export class VaultCockpitView extends ItemView {
 
   constructor(
     leaf: WorkspaceLeaf,
-    private readonly plugin: ObsidianMasterPlugin
+    private readonly plugin: ContextNinePlugin
   ) {
     super(leaf);
   }

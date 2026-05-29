@@ -29,6 +29,24 @@ export function parseEpicPathFromBaseText(text: string): string | null {
   return match?.[1]?.trim() || null;
 }
 
+export function parseContextFromBaseText(text: string): string | null {
+  const folderMatches = [
+    ...text.matchAll(/\bfile\.inFolder\("(\d\d-[^"/]+)\/_obsidian\/(?:tasks|projects|epics)(?:\/[^"]*)?"\)/g),
+  ];
+  if (folderMatches.length === 1) {
+    return folderMatches[0][1];
+  }
+
+  const contextMatches = [
+    ...text.matchAll(/\bcontexts?\s*(?:==|\.contains\()\s*"?(\d\d-[^")\]]+)"?/g),
+  ];
+  if (contextMatches.length === 1) {
+    return contextMatches[0][1].trim();
+  }
+
+  return null;
+}
+
 export function contextFromPathRoot(path: string | null | undefined): string | null {
   const root = path?.split("/")[0]?.trim();
   return root && /^\d\d-/.test(root) ? root : null;

@@ -1,9 +1,9 @@
 {
-  "id": "obsidian-master-plugin",
-  "name": "Obsidian Master Plugin",
-  "version": "0.1.0",
+  "id": "context-nine-hastitian",
+  "name": "Context Nine",
+  "version": "1.0.0",
   "minAppVersion": "1.7.0",
-  "description": "Workspace-specific TaskNotes capture, vault command cockpit, and attachment routing commands.",
+  "description": "TaskNotes capture, context routing, vault command cockpit, and attachment cleanup tools.",
   "author": "Matthew Derman",
   "isDesktopOnly": true
 }

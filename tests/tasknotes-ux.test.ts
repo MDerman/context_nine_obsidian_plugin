@@ -4,6 +4,7 @@ import {
   buildKanbanTaskDefaults,
   mergeKanbanTaskDefaults,
   normalizeSwimlaneProjectValue,
+  parseContextFromBaseText,
   parseEpicPathFromBaseText,
 } from "../src/tasknotes-kanban-defaults";
 
@@ -57,6 +58,16 @@ filters:
     - 'epic == link("03-impression/_obsidian/epics/Focus")'
 `)
     ).toBe("03-impression/_obsidian/epics/Focus");
+  });
+
+  it("parses context filters from context-scoped base files", () => {
+    expect(
+      parseContextFromBaseText(`
+filters:
+  and:
+    - file.inFolder("01-personal/_obsidian/tasks")
+`)
+    ).toBe("01-personal");
   });
 
   it("merges kanban defaults into blank task data", () => {

@@ -1,13 +1,13 @@
 {
-  "name": "obsidian-master-plugin",
-  "version": "0.1.0",
-  "description": "Workspace-specific Obsidian helpers for TaskNotes capture and attachment routing.",
+  "name": "context-nine-hastitian",
+  "version": "1.0.0",
+  "description": "TaskNotes capture, context routing, vault command cockpit, and attachment cleanup tools for Obsidian.",
   "main": "main.js",
   "scripts": {
     "build": "tsc --noEmit && node esbuild.config.mjs production",
     "dev": "node esbuild.config.mjs",
     "test": "vitest run",
-    "install-vault": "npm run build && mkdir -p '/Users/matthewderman/My Drive/Workspace/.obsidian/plugins/obsidian-master-plugin' && cp main.js manifest.json styles.css '/Users/matthewderman/My Drive/Workspace/.obsidian/plugins/obsidian-master-plugin/'"
+    "install-vault": "npm run build && VAULT_ROOT=\"${VAULT_ROOT:-$(vault root)}\" node -e \"const fs=require('fs'); const path=require('path'); const root=process.env.VAULT_ROOT; const dest=path.join(root,'.obsidian/plugins/context-nine-hastitian'); fs.mkdirSync(dest,{recursive:true}); for (const file of ['main.js','manifest.json','styles.css']) fs.copyFileSync(file,path.join(dest,file));\""
   },
   "keywords": [
     "obsidian",

@@ -22,6 +22,7 @@ export interface MasterPluginSettings {
   routeIntervalSeconds: number;
   enableGcalSync: boolean;
   gcalSyncIntervalSeconds: number;
+  enableTaskContextRouter: boolean;
   deleteSourceAfterCapture: boolean;
   hoveredDeleteEnabled: boolean;
   taskModalDeleteButtonEnabled: boolean;
@@ -39,11 +40,12 @@ export const DEFAULT_SETTINGS: MasterPluginSettings = {
   routeIntervalSeconds: 60,
   enableGcalSync: true,
   gcalSyncIntervalSeconds: 300,
+  enableTaskContextRouter: true,
   deleteSourceAfterCapture: true,
   hoveredDeleteEnabled: true,
   taskModalDeleteButtonEnabled: true,
   vaultCommand: "vault",
-  vaultRoot: "/Users/matthewderman/My Drive/Workspace",
+  vaultRoot: "",
 };
 
 export interface CapturedSelection {

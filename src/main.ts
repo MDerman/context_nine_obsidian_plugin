@@ -1,19 +1,23 @@
 import { Notice, Plugin, PluginSettingTab, Setting, TFile, type WorkspaceLeaf } from "obsidian";
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import { join } from "path";
 import { AttachmentRouter, noticeRouteResult } from "./attachment-router";
 import { FileActionService } from "./file-actions";
 import { TaskCaptureService } from "./task-capture";
 import { DEFAULT_SETTINGS, MasterPluginSettings } from "./types";
-import { getTaskNotesPlugin } from "./tasknotes";
 import { VAULT_COCKPIT_VIEW_TYPE, VaultCockpitView } from "./vault-cockpit";
+import { TaskContextRouterService } from "./task-context-router";
 import { TaskNotesUxService } from "./tasknotes-ux";
+import { TaskNotesModalUiService } from "./tasknotes-modal-ui";
 
-export default class ObsidianMasterPlugin extends Plugin {
+export default class ContextNinePlugin extends Plugin {
   settings: MasterPluginSettings;
   private router: AttachmentRouter;
   private taskCapture: TaskCaptureService;
   private fileActions: FileActionService;
+  private taskContextRouter: TaskContextRouterService;
   private taskNotesUx: TaskNotesUxService;
+  private taskNotesModalUi: TaskNotesModalUiService;
   private queuedInboxPaths = new Set<string>();
   private gcalSyncProcess: ChildProcessWithoutNullStreams | null = null;
 
@@ -21,7 +25,9 @@ export default class ObsidianMasterPlugin extends Plugin {
     await this.loadSettings();
     this.router = new AttachmentRouter(this.app, () => this.settings);
     this.fileActions = new FileActionService(this.app);
+    this.taskContextRouter = new TaskContextRouterService(this.app, () => this.settings);
     this.taskNotesUx = new TaskNotesUxService(this.app);
+    this.taskNotesModalUi = new TaskNotesModalUiService(this.app, () => this.settings);
     this.taskCapture = new TaskCaptureService(
       this.app,
       this.router,
@@ -142,20 +148,28 @@ export default class ObsidianMasterPlugin extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: "route-task-files-by-context",
+      name: "Route TaskNotes files by context",
+      callback: () => {
+        void this.routeTaskFilesByContext();
+      },
+    });
+
     if (this.settings.enableAutoAttachmentRouter) {
       this.registerAttachmentWatcher();
     }
     if (this.settings.enableGcalSync) {
       this.registerGcalSyncTimer();
     }
+    if (this.settings.enableTaskContextRouter) {
+      this.taskContextRouter.register(this);
+    }
     if (this.settings.hoveredDeleteEnabled) {
       this.fileActions.register(this);
     }
     if (this.settings.taskModalDeleteButtonEnabled) {
-      this.fileActions.registerTaskModalDeleteObserver(this);
-      this.app.workspace.onLayoutReady(() => {
-        this.fileActions.patchTaskNotesModal(getTaskNotesPlugin(this.app));
-      });
+      this.taskNotesModalUi.register(this);
     }
     this.taskNotesUx.register(this);
 
@@ -163,19 +177,34 @@ export default class ObsidianMasterPlugin extends Plugin {
   }
 
   onunload(): void {
-    this.fileActions?.unpatchTaskNotesModal();
+    this.taskNotesModalUi?.unpatch();
     this.taskNotesUx?.unpatch();
   }
 
   async loadSettings(): Promise<void> {
+    const loadedSettings = (await this.loadData()) as Partial<MasterPluginSettings> | null;
+    const currentVaultRoot = this.getCurrentVaultRoot();
     this.settings = {
       ...DEFAULT_SETTINGS,
-      ...((await this.loadData()) as Partial<MasterPluginSettings> | null),
+      ...loadedSettings,
+      vaultRoot: currentVaultRoot || loadedSettings?.vaultRoot || DEFAULT_SETTINGS.vaultRoot,
     };
+    if (currentVaultRoot && loadedSettings?.vaultRoot !== currentVaultRoot) {
+      await this.saveSettings();
+    }
   }
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  getCurrentVaultRoot(): string {
+    const adapter = this.app.vault.adapter as { getBasePath?: () => string };
+    return adapter.getBasePath?.() ?? "";
+  }
+
+  getVaultCommand(command: string, cwd: string): string {
+    return command === "vault" ? join(cwd, "master/system/scripts/vault.py") : command;
   }
 
   async openVaultCockpit(): Promise<void> {
@@ -280,6 +309,11 @@ export default class ObsidianMasterPlugin extends Plugin {
     noticeRouteResult(count);
   }
 
+  private async routeTaskFilesByContext(): Promise<void> {
+    const moved = await this.taskContextRouter.routeAllTasks();
+    new Notice(`Moved ${moved} task file${moved === 1 ? "" : "s"}.`);
+  }
+
   private registerGcalSyncTimer(): void {
     const interval = Math.max(60, this.settings.gcalSyncIntervalSeconds) * 1000;
     this.registerInterval(
@@ -294,8 +328,11 @@ export default class ObsidianMasterPlugin extends Plugin {
       return;
     }
 
-    const command = this.settings.vaultCommand || DEFAULT_SETTINGS.vaultCommand;
-    const cwd = this.settings.vaultRoot || DEFAULT_SETTINGS.vaultRoot;
+    const cwd = this.settings.vaultRoot || this.getCurrentVaultRoot() || DEFAULT_SETTINGS.vaultRoot;
+    const command = this.getVaultCommand(
+      this.settings.vaultCommand || DEFAULT_SETTINGS.vaultCommand,
+      cwd
+    );
     const child = spawn(command, ["gcal", "sync-tasks", "--apply"], {
       cwd,
       env: {
@@ -310,37 +347,37 @@ export default class ObsidianMasterPlugin extends Plugin {
     child.stdout.on("data", (data: Buffer) => {
       const text = data.toString().trim();
       if (text) {
-        console.log("[Obsidian Master Plugin] gcal sync:", text);
+        console.log("[Context Nine] gcal sync:", text);
       }
     });
     child.stderr.on("data", (data: Buffer) => {
       const text = data.toString().trim();
       if (text) {
-        console.warn("[Obsidian Master Plugin] gcal sync:", text);
+        console.warn("[Context Nine] gcal sync:", text);
       }
     });
     child.on("error", (error) => {
       this.gcalSyncProcess = null;
-      console.error("[Obsidian Master Plugin] gcal sync failed", error);
+      console.error("[Context Nine] gcal sync failed", error);
     });
     child.on("close", (exitCode) => {
       this.gcalSyncProcess = null;
       if (exitCode !== 0) {
-        console.warn(`[Obsidian Master Plugin] gcal sync exited with ${exitCode}`);
+        console.warn(`[Context Nine] gcal sync exited with ${exitCode}`);
       }
     });
   }
 }
 
 class ObsidianMasterSettingTab extends PluginSettingTab {
-  constructor(private readonly plugin: ObsidianMasterPlugin) {
+  constructor(private readonly plugin: ContextNinePlugin) {
     super(plugin.app, plugin);
   }
 
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Obsidian Master Plugin" });
+    containerEl.createEl("h2", { text: "Context Nine" });
 
     new Setting(containerEl).setName("Default capture context").addText((text) => {
       text.setValue(this.plugin.settings.defaultContext).onChange(async (value) => {
@@ -394,6 +431,13 @@ class ObsidianMasterSettingTab extends PluginSettingTab {
       });
     });
 
+    new Setting(containerEl).setName("Move TaskNotes files when context changes").addToggle((toggle) => {
+      toggle.setValue(this.plugin.settings.enableTaskContextRouter).onChange(async (value) => {
+        this.plugin.settings.enableTaskContextRouter = value;
+        await this.plugin.saveSettings();
+      });
+    });
+
     new Setting(containerEl).setName("Hovered file actions").addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.hoveredDeleteEnabled).onChange(async (value) => {
         this.plugin.settings.hoveredDeleteEnabled = value;
@@ -401,7 +445,7 @@ class ObsidianMasterSettingTab extends PluginSettingTab {
       });
     });
 
-    new Setting(containerEl).setName("Delete button in TaskNotes edit modal").addToggle((toggle) => {
+    new Setting(containerEl).setName("TaskNotes edit modal enhancements").addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.taskModalDeleteButtonEnabled).onChange(async (value) => {
         this.plugin.settings.taskModalDeleteButtonEnabled = value;
         await this.plugin.saveSettings();
@@ -417,7 +461,8 @@ class ObsidianMasterSettingTab extends PluginSettingTab {
 
     new Setting(containerEl).setName("Vault root").addText((text) => {
       text.setValue(this.plugin.settings.vaultRoot).onChange(async (value) => {
-        this.plugin.settings.vaultRoot = value.trim() || DEFAULT_SETTINGS.vaultRoot;
+        this.plugin.settings.vaultRoot =
+          value.trim() || this.plugin.getCurrentVaultRoot() || DEFAULT_SETTINGS.vaultRoot;
         await this.plugin.saveSettings();
       });
     });

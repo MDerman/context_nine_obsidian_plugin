@@ -6,6 +6,7 @@ import {
   contextFromWikiLinkValue,
   mergeKanbanTaskDefaults,
   normalizeSwimlaneProjectValue,
+  parseContextFromBaseText,
   parseEpicPathFromBaseText,
 } from "./tasknotes-kanban-defaults";
 import { getTaskNotesPlugin } from "./tasknotes";
@@ -191,12 +192,13 @@ export class TaskNotesUxService {
     }
 
     const baseFile = this.baseFileForElement(column);
-    this.openTaskModalWithKanbanDefaults(taskNotes, status, project, baseFile).catch((error) => {
+    this.openTaskModalWithKanbanDefaults(taskNotes, status, project, baseFile).catch(async (error) => {
       console.error("Failed to open kanban task modal with defaults:", error);
       new Notice("Failed to read kanban defaults.");
+      const baseContext = baseFile ? await this.contextFromBaseFile(baseFile) : null;
       const fallbackContext = project
         ? this.contextFromWikiLink(project)
-        : contextFromPathRoot(baseFile?.path);
+        : baseContext ?? contextFromPathRoot(baseFile?.path);
       const defaults = buildKanbanTaskDefaults({
         status,
         priority: taskNotes.settings?.defaultTaskPriority ?? "normal",
@@ -217,9 +219,11 @@ export class TaskNotesUxService {
     baseFile: TFile | null
   ): Promise<void> {
     const epic = await this.epicChoiceFromBaseFile(baseFile);
+    const baseContext = baseFile ? await this.contextFromBaseFile(baseFile) : null;
     const context =
       (project ? this.contextFromWikiLink(project) : null) ??
       contextFromPathRoot(epic?.path) ??
+      baseContext ??
       contextFromPathRoot(baseFile?.path);
     const defaults = buildKanbanTaskDefaults({
       status,
@@ -271,23 +275,58 @@ export class TaskNotesUxService {
   }
 
   private baseFileForElement(element: HTMLElement): TFile | null {
+    const domPath = this.basePathFromElement(element);
+    if (domPath) {
+      const domFile = this.app.vault.getAbstractFileByPath(domPath);
+      if (domFile instanceof TFile) {
+        return domFile;
+      }
+    }
+
     const workspace = this.app.workspace as unknown as {
       iterateAllLeaves?: (callback: (leaf: unknown) => void) => void;
     };
-    const leaves: Array<{ view?: { containerEl?: HTMLElement; file?: TFile } }> = [];
+    const leaves: Array<{ view?: { containerEl?: HTMLElement; file?: TFile; state?: { file?: string } } }> = [];
     workspace.iterateAllLeaves?.((leaf) => {
-      leaves.push(leaf as { view?: { containerEl?: HTMLElement; file?: TFile } });
+      leaves.push(leaf as { view?: { containerEl?: HTMLElement; file?: TFile; state?: { file?: string } } });
     });
 
-    const matchingFile = leaves.find((leaf) => {
+    const matchingLeaf = leaves.find((leaf) => {
       return leaf.view?.containerEl?.contains(element) && leaf.view.file instanceof TFile;
-    })?.view?.file;
+    });
+    const matchingFile = matchingLeaf?.view?.file;
     if (matchingFile?.path.endsWith(".base")) {
       return matchingFile;
     }
 
+    const statePath = leaves.find((leaf) => leaf.view?.containerEl?.contains(element))?.view?.state?.file;
+    const stateFile = statePath ? this.app.vault.getAbstractFileByPath(statePath) : null;
+    if (stateFile instanceof TFile && stateFile.path.endsWith(".base")) {
+      return stateFile;
+    }
+
     const activeFile = this.app.workspace.getActiveFile();
     return activeFile?.path.endsWith(".base") ? activeFile : null;
+  }
+
+  private basePathFromElement(element: HTMLElement): string | null {
+    for (let current: Element | null = element; current; current = current.parentElement) {
+      if (!(current instanceof HTMLElement)) {
+        continue;
+      }
+      for (const attr of ["data-path", "data-file-path", "data-base-path"]) {
+        const value = current.getAttribute(attr);
+        if (value?.endsWith(".base")) {
+          return value;
+        }
+      }
+    }
+    return null;
+  }
+
+  private async contextFromBaseFile(file: TFile): Promise<string | null> {
+    const text = await this.app.vault.cachedRead(file);
+    return parseContextFromBaseText(text);
   }
 
   private async epicChoiceFromBaseFile(file: TFile | null): Promise<EpicChoice | null> {

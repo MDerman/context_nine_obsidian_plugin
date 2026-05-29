@@ -29,6 +29,19 @@ export function taskFolderForContext(context: string): string {
   return `${context}/_obsidian/tasks`;
 }
 
+export function isTaskFilePath(path: string, knownRoots: string[]): boolean {
+  const normalized = normalizeVaultPath(path);
+  if (!normalized.endsWith(".md")) {
+    return false;
+  }
+  const root = topRoot(normalized, knownRoots);
+  return root !== null && normalized.startsWith(`${root}/_obsidian/tasks/`);
+}
+
+export function taskDestinationPathForContext(path: string, context: string): string {
+  return normalizeVaultPath(`${taskFolderForContext(context)}/${basename(path)}`);
+}
+
 export function normalizeVaultPath(path: string): string {
   return path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\/+/, "");
 }
