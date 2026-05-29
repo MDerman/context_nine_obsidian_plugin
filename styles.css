@@ -32,6 +32,8 @@
   flex-direction: column;
   gap: 8px;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
   padding: 8px;
 }
 
@@ -94,7 +96,11 @@
 
 .omp-vault-cockpit-actions {
   display: grid;
+  flex: 0 1 auto;
   gap: 10px;
+  min-height: 0;
+  max-height: 40%;
+  overflow-y: auto;
   padding-top: 2px;
 }
 
@@ -145,9 +151,13 @@
 }
 
 .omp-vault-cockpit-output {
-  display: grid;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: 6px;
+  min-height: 0;
   margin-top: 2px;
+  overflow: hidden;
 }
 
 .omp-vault-cockpit-output-row {
@@ -182,8 +192,8 @@
 }
 
 .omp-vault-cockpit-log {
-  flex: 1;
-  min-height: 180px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
