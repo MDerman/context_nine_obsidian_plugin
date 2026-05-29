@@ -44,7 +44,7 @@ VAULT_ROOT="/path/to/vault" npm run install-vault
 `npm run install-vault` builds the plugin and copies `main.js`, `manifest.json`, and `styles.css` into:
 
 ```text
-.obsidian/plugins/context-nine-hastitian/
+.obsidian/plugins/context-nine/
 ```
 
 ## Release
