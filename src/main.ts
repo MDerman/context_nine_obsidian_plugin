@@ -1,4 +1,4 @@
-import { Notice, Plugin, PluginSettingTab, Setting, TFile, type WorkspaceLeaf } from "obsidian";
+import { Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, type App, type WorkspaceLeaf } from "obsidian";
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
 import { join } from "path";
 import { AttachmentRouter, noticeRouteResult } from "./attachment-router";
@@ -9,6 +9,10 @@ import { VAULT_COCKPIT_VIEW_TYPE, VaultCockpitView } from "./vault-cockpit";
 import { TaskContextRouterService } from "./task-context-router";
 import { TaskNotesUxService } from "./tasknotes-ux";
 import { TaskNotesModalUiService } from "./tasknotes-modal-ui";
+import {
+  loadVaultCommandMetadata,
+  type VaultCommandDefinition,
+} from "./vault-command-metadata";
 
 export default class ContextNinePlugin extends Plugin {
   settings: MasterPluginSettings;
@@ -51,6 +55,8 @@ export default class ContextNinePlugin extends Plugin {
         void this.openVaultCockpit();
       },
     });
+
+    await this.registerVaultPaletteCommands();
 
     this.addCommand({
       id: "focus-main-pane-1",
@@ -204,22 +210,62 @@ export default class ContextNinePlugin extends Plugin {
   }
 
   getVaultCommand(command: string, cwd: string): string {
-    return command === "vault" ? join(cwd, "master/system/scripts/vault.py") : command;
+    return command === "vault" ? join(cwd, "_master/system/scripts/vault.py") : command;
   }
 
   async openVaultCockpit(): Promise<void> {
+    await this.getVaultCockpitView();
+  }
+
+  async getVaultCockpitView(): Promise<VaultCockpitView | null> {
     const existing = this.app.workspace.getLeavesOfType(VAULT_COCKPIT_VIEW_TYPE)[0];
     if (existing) {
       await this.app.workspace.revealLeaf(existing);
-      return;
+      return existing.view instanceof VaultCockpitView ? existing.view : null;
     }
     const leaf = this.app.workspace.getRightLeaf(false);
     if (!leaf) {
       new Notice("Could not open the right sidebar.");
-      return;
+      return null;
     }
     await leaf.setViewState({ type: VAULT_COCKPIT_VIEW_TYPE, active: true });
     await this.app.workspace.revealLeaf(leaf);
+    return leaf.view instanceof VaultCockpitView ? leaf.view : null;
+  }
+
+  private async registerVaultPaletteCommands(): Promise<void> {
+    const result = await loadVaultCommandMetadata(this.app);
+    if (result.warning) {
+      console.warn(`[Context Nine] ${result.warning}`);
+    }
+    for (const command of result.commands.filter((item) => item.palette)) {
+      this.addCommand({
+        id: `vault-${command.id}`,
+        name: `Vault ${command.label}`,
+        callback: () => {
+          void this.runPaletteVaultCommand(command);
+        },
+      });
+    }
+  }
+
+  private async runPaletteVaultCommand(command: VaultCommandDefinition): Promise<void> {
+    if (command.promptArgs?.length) {
+      new VaultPromptArgsModal(this.app, command, (extraArgs) => {
+        void this.runVaultCommandInCockpit(command, extraArgs);
+      }).open();
+      return;
+    }
+    await this.runVaultCommandInCockpit(command);
+  }
+
+  private async runVaultCommandInCockpit(command: VaultCommandDefinition, extraArgs: string[] = []): Promise<void> {
+    const view = await this.getVaultCockpitView();
+    if (!view) {
+      new Notice("Could not open the vault command center.");
+      return;
+    }
+    view.runCommand(command, extraArgs);
   }
 
   private async focusMainPane(index: number, createIfMissing = false): Promise<void> {
@@ -366,6 +412,60 @@ export default class ContextNinePlugin extends Plugin {
         console.warn(`[Context Nine] gcal sync exited with ${exitCode}`);
       }
     });
+  }
+}
+
+class VaultPromptArgsModal extends Modal {
+  private values: string[];
+
+  constructor(
+    app: App,
+    private readonly command: VaultCommandDefinition,
+    private readonly onSubmit: (args: string[]) => void
+  ) {
+    super(app);
+    this.values = new Array(command.promptArgs?.length ?? 0).fill("");
+  }
+
+  onOpen(): void {
+    this.contentEl.empty();
+    this.containerEl.addClass("omp-modal");
+    this.titleEl.setText(this.command.label);
+
+    const promptArgs = this.command.promptArgs ?? [];
+    promptArgs.forEach((promptArg, index) => {
+      new Setting(this.contentEl).setName(promptArg.label).addText((text) => {
+        text.setPlaceholder(promptArg.placeholder ?? "").onChange((value) => {
+          this.values[index] = value.trim();
+        });
+        text.inputEl.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            this.submit();
+          }
+        });
+        if (index === 0) {
+          window.setTimeout(() => text.inputEl.focus(), 0);
+        }
+      });
+    });
+
+    const buttons = this.contentEl.createDiv({ cls: "omp-button-row" });
+    buttons.createEl("button", { text: "Cancel" }).addEventListener("click", () => this.close());
+    const run = buttons.createEl("button", { text: "Run" });
+    run.addClass("mod-cta");
+    run.addEventListener("click", () => this.submit());
+  }
+
+  private submit(): void {
+    const promptArgs = this.command.promptArgs ?? [];
+    const missing = promptArgs.find((_, index) => !this.values[index]);
+    if (missing) {
+      new Notice(`${missing.label} required.`);
+      return;
+    }
+    this.close();
+    this.onSubmit(this.values);
   }
 }
 

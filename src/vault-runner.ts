@@ -44,7 +44,7 @@ export class VaultCommandRunner {
     }
 
     const startedAt = new Date();
-    const resolvedCommand = command === "vault" ? join(cwd, "master/system/scripts/vault.py") : command;
+    const resolvedCommand = command === "vault" ? join(cwd, "_master/system/scripts/vault.py") : command;
     events.onStart({ spec, command: resolvedCommand, cwd, startedAt });
 
     const child = spawn(resolvedCommand, spec.args, {

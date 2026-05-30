@@ -28,9 +28,9 @@ Context Nine is desktop-only. Vault Command Center and background sync commands 
 
 ## Vault Command Center
 
-Vault Command Center runs the local `vault` command dispatcher without leaving Obsidian. Default buttons include refresh, sync, context, content schedules, attachment dry run/apply, and profile sync.
+Vault Command Center shows local command output in the right sidebar and keeps a Git Commit action close at hand. Day-to-day vault commands live in the Obsidian command palette and are loaded from the vault command metadata file.
 
-Normal click runs a command directly. `Cmd+Click` opens an arguments modal and appends parsed arguments to the base command. Output streams live into the panel with stdout, stderr, status, exit code, and timestamps visible after completion.
+Output streams live into the panel with stdout, stderr, status, exit code, and timestamps visible after completion.
 
 ## Development
 

@@ -6,6 +6,15 @@ export interface VaultCommandDefinition {
   description: string;
   args: string[];
   aliases?: string[];
+  cockpit?: boolean;
+  palette?: boolean;
+  promptArgs?: VaultCommandPromptArg[];
+}
+
+export interface VaultCommandPromptArg {
+  label: string;
+  placeholder?: string;
+  argName?: string;
 }
 
 export interface VaultCommandLoadResult {
@@ -13,7 +22,8 @@ export interface VaultCommandLoadResult {
   warning?: string;
 }
 
-export const VAULT_COMMAND_METADATA_PATH = "master/system/scripts/vault-commands.json";
+export const VAULT_COMMAND_METADATA_PATH = "_master/system/scripts/vault-commands.json";
+const LEGACY_VAULT_COMMAND_METADATA_PATH = "master/system/scripts/vault-commands.json";
 
 export const FALLBACK_VAULT_COMMANDS: VaultCommandDefinition[] = [
   {
@@ -21,6 +31,22 @@ export const FALLBACK_VAULT_COMMANDS: VaultCommandDefinition[] = [
     label: "Refresh",
     description: "Ingest configured Apple Notes, then regenerate agent context.",
     args: ["refresh"],
+    palette: true,
+  },
+  {
+    id: "folder-register",
+    label: "Folder Register",
+    description: "Register an existing context folder and regenerate vault wiring.",
+    args: ["folder", "register"],
+    palette: true,
+    promptArgs: [{ label: "Context folder", placeholder: "impression", argName: "name" }],
+  },
+  {
+    id: "upgrade",
+    label: "Upgrade",
+    description: "Apply public bootstrap vault updates.",
+    args: ["upgrade", "--apply"],
+    palette: true,
   },
   {
     id: "sync",
@@ -106,10 +132,15 @@ export async function loadVaultCommandMetadata(app: App): Promise<VaultCommandLo
     const json = await app.vault.adapter.read(VAULT_COMMAND_METADATA_PATH);
     return parseVaultCommandMetadata(json);
   } catch (error) {
-    return {
-      commands: FALLBACK_VAULT_COMMANDS,
-      warning: `Could not read ${VAULT_COMMAND_METADATA_PATH}: ${messageForError(error)}`,
-    };
+    try {
+      const json = await app.vault.adapter.read(LEGACY_VAULT_COMMAND_METADATA_PATH);
+      return parseVaultCommandMetadata(json);
+    } catch {
+      return {
+        commands: FALLBACK_VAULT_COMMANDS,
+        warning: `Could not read ${VAULT_COMMAND_METADATA_PATH}: ${messageForError(error)}`,
+      };
+    }
   }
 }
 
@@ -132,6 +163,18 @@ function normalizeCommand(value: unknown): VaultCommandDefinition | null {
   ) {
     return null;
   }
+  if (value.cockpit !== undefined && typeof value.cockpit !== "boolean") {
+    return null;
+  }
+  if (value.palette !== undefined && typeof value.palette !== "boolean") {
+    return null;
+  }
+  if (
+    value.promptArgs !== undefined &&
+    (!Array.isArray(value.promptArgs) || !value.promptArgs.every(isPromptArg))
+  ) {
+    return null;
+  }
 
   return {
     id: value.id,
@@ -139,11 +182,27 @@ function normalizeCommand(value: unknown): VaultCommandDefinition | null {
     description: value.description,
     args: value.args,
     aliases: value.aliases,
+    cockpit: value.cockpit,
+    palette: value.palette,
+    promptArgs: value.promptArgs,
   };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isPromptArg(value: unknown): value is VaultCommandPromptArg {
+  if (!isRecord(value) || typeof value.label !== "string") {
+    return false;
+  }
+  if (value.placeholder !== undefined && typeof value.placeholder !== "string") {
+    return false;
+  }
+  if (value.argName !== undefined && typeof value.argName !== "string") {
+    return false;
+  }
+  return true;
 }
 
 function messageForError(error: unknown): string {
