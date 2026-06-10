@@ -44,8 +44,12 @@
 
 .mod-left-split .workspace-leaf:has(.omp-vault-cockpit:not(.is-actions-expanded)),
 .mod-right-split .workspace-leaf:has(.omp-vault-cockpit:not(.is-actions-expanded)) {
-  flex: 0 0 auto !important;
-  min-height: 52px !important;
+  flex: 0 0 104px !important;
+  min-height: 104px !important;
+}
+
+.workspace-leaf-content[data-type="vault-cockpit-view"] .view-content:has(.omp-vault-cockpit:not(.is-actions-expanded)) {
+  min-height: 48px;
 }
 
 .omp-vault-cockpit-status {
