@@ -31,10 +31,21 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: 100%;
+  height: auto;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   padding: 8px;
+}
+
+.omp-vault-cockpit.is-actions-expanded {
+  height: 100%;
+  overflow: hidden;
+}
+
+.mod-left-split .workspace-leaf:has(.omp-vault-cockpit:not(.is-actions-expanded)),
+.mod-right-split .workspace-leaf:has(.omp-vault-cockpit:not(.is-actions-expanded)) {
+  flex: 0 0 auto !important;
+  min-height: 52px !important;
 }
 
 .omp-vault-cockpit-status {
@@ -85,8 +96,8 @@
 .omp-vault-cockpit-command {
   min-height: 30px;
   padding: 3px 7px;
-  border-color: color-mix(in srgb, var(--background-primary) 82%, black);
-  background-color: color-mix(in srgb, var(--background-primary) 88%, black);
+  border-color: var(--background-modifier-border);
+  background-color: var(--background-secondary);
   color: var(--text-normal);
   font-size: var(--font-ui-smaller);
   font-weight: var(--font-semibold);
@@ -95,8 +106,8 @@
 }
 
 .omp-vault-cockpit-command:hover {
-  border-color: color-mix(in srgb, var(--background-primary) 72%, black);
-  background-color: color-mix(in srgb, var(--background-primary) 80%, black);
+  border-color: var(--background-modifier-border-hover);
+  background-color: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 

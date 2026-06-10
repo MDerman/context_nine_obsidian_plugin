@@ -63,13 +63,14 @@ export class VaultCockpitView extends ItemView {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.addClass("omp-vault-cockpit");
+    containerEl.toggleClass("is-actions-expanded", this.actionsExpanded);
 
     this.buttons.clear();
 
     const primaryRow = containerEl.createDiv({ cls: "omp-vault-cockpit-primary-row" });
     const refreshCommand = this.findCommand("refresh") ?? this.commands[0];
     if (refreshCommand) {
-      const refreshButton = this.createCommandButton(primaryRow, refreshCommand, "omp-vault-cockpit-refresh mod-cta");
+      const refreshButton = this.createCommandButton(primaryRow, refreshCommand, "omp-vault-cockpit-refresh");
       this.buttons.set(refreshCommand.id, refreshButton);
     }
 
