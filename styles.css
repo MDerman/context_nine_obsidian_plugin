@@ -31,25 +31,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: auto;
-  min-height: 0;
-  overflow: visible;
-  padding: 8px;
-}
-
-.omp-vault-cockpit.is-actions-expanded {
   height: 100%;
+  min-height: 0;
   overflow: hidden;
-}
-
-.mod-left-split .workspace-leaf:has(.omp-vault-cockpit:not(.is-actions-expanded)),
-.mod-right-split .workspace-leaf:has(.omp-vault-cockpit:not(.is-actions-expanded)) {
-  flex: 0 0 104px !important;
-  min-height: 104px !important;
-}
-
-.workspace-leaf-content[data-type="vault-cockpit-view"] .view-content:has(.omp-vault-cockpit:not(.is-actions-expanded)) {
-  min-height: 48px;
+  padding: 8px;
 }
 
 .omp-vault-cockpit-status {
