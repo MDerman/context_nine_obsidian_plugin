@@ -135,11 +135,13 @@ export class PeriodicTabRolloverService {
         await leaf.view.save();
       }
       const currentState = leaf.getViewState();
-      const preservedState = { ...(currentState.state ?? {}) };
-      delete preservedState.file;
-      await leaf.openFile(target, {
+      await leaf.setViewState({
+        ...currentState,
         active: leaf === activeLeaf,
-        state: preservedState,
+        state: {
+          ...(currentState.state ?? {}),
+          file: target.path,
+        },
       });
       updated += 1;
     }
