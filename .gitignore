@@ -2,3 +2,7 @@ node_modules/
 main.js
 *.map
 .DS_Store
+__pycache__/
+python/.venv/
+python/.pytest_cache/
+python/.ruff_cache/

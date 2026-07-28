@@ -1,18 +1,18 @@
 import type { Editor, EditorPosition, TFile } from "obsidian";
 
 export const DEFAULT_KNOWN_ROOTS = [
-  "01-personal",
-  "02-matt-derman",
-  "03-impression",
-  "04-dev",
-  "05-claudeche",
-  "library",
-  "master",
-  "shared",
-  "wiki",
+  "personal",
+  "matt-derman",
+  "impression.nosync",
+  "dev",
+  "claudeche",
+  "ctx9",
+  "_library",
+  "_system",
+  "_wiki",
 ];
 
-export interface MasterPluginSettings {
+export interface ContextNineSettings {
   defaultContext: string;
   lastContext: string;
   knownRoots: string[];
@@ -30,12 +30,12 @@ export interface MasterPluginSettings {
   vaultRoot: string;
 }
 
-export const DEFAULT_SETTINGS: MasterPluginSettings = {
-  defaultContext: "03-impression",
-  lastContext: "03-impression",
+export const DEFAULT_SETTINGS: ContextNineSettings = {
+  defaultContext: "impression.nosync",
+  lastContext: "impression.nosync",
   knownRoots: DEFAULT_KNOWN_ROOTS,
-  attachmentInboxPath: "master/_obsidian/attachments/_inbox",
-  appleNotesAttachmentsPath: "master/system/inbox/apple-notes-attachments",
+  attachmentInboxPath: "_system/_obsidian/attachments/_inbox",
+  appleNotesAttachmentsPath: "_system/inbox/apple-notes-attachments",
   enableAutoAttachmentRouter: true,
   routeIntervalSeconds: 60,
   enableGcalSync: true,

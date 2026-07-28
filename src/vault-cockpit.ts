@@ -1,4 +1,4 @@
-import { ItemView, Notice, type IconName, type WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, setIcon, type IconName, type WorkspaceLeaf } from "obsidian";
 import type ContextNinePlugin from "./main";
 import {
   FALLBACK_VAULT_COMMANDS,
@@ -68,10 +68,21 @@ export class VaultCockpitView extends ItemView {
     this.buttons.clear();
 
     const primaryRow = containerEl.createDiv({ cls: "omp-vault-cockpit-primary-row" });
-    const refreshCommand = this.findCommand("refresh") ?? this.commands[0];
-    if (refreshCommand) {
-      const refreshButton = this.createCommandButton(primaryRow, refreshCommand, "omp-vault-cockpit-refresh");
-      this.buttons.set(refreshCommand.id, refreshButton);
+    const primaryActions = primaryRow.createDiv({ cls: "omp-vault-cockpit-primary-actions" });
+    const cockpitCommands = this.commands.filter((command) => command.cockpit);
+    const fallbackPrimaryCommand = this.findCommand("refresh") ?? this.commands[0];
+    const primaryCommands = cockpitCommands.length > 0 ? cockpitCommands : fallbackPrimaryCommand ? [fallbackPrimaryCommand] : [];
+    for (const command of primaryCommands) {
+      const commandButton = this.createCommandButton(
+        primaryActions,
+        command,
+        [
+          "omp-vault-cockpit-primary-command",
+          command.id === "refresh" ? "omp-vault-cockpit-refresh" : "",
+          command.id === "sync" ? "omp-vault-cockpit-sync-icon" : "",
+        ].filter(Boolean).join(" ")
+      );
+      this.buttons.set(command.id, commandButton);
     }
 
     this.statusEl = primaryRow.createDiv({ cls: "omp-vault-cockpit-status", text: labelForStatus(this.status) });
@@ -104,14 +115,18 @@ export class VaultCockpitView extends ItemView {
   }
 
   private createCommandButton(parent: HTMLElement, command: VaultCommandDefinition, extraClass = ""): HTMLButtonElement {
+    const iconOnly = command.id === "sync";
     const button = parent.createEl("button", {
       cls: `omp-vault-cockpit-command ${extraClass}`.trim(),
-      text: command.label,
+      text: iconOnly ? "" : command.label,
       attr: {
         title: command.description,
         "aria-label": command.description,
       },
     });
+    if (iconOnly) {
+      setIcon(button, "sticky-note");
+    }
     button.addEventListener("click", () => {
       this.runCommand(command);
     });

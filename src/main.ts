@@ -4,7 +4,7 @@ import { join } from "path";
 import { AttachmentRouter, noticeRouteResult } from "./attachment-router";
 import { FileActionService } from "./file-actions";
 import { TaskCaptureService } from "./task-capture";
-import { DEFAULT_SETTINGS, MasterPluginSettings } from "./types";
+import { DEFAULT_SETTINGS, ContextNineSettings } from "./types";
 import { VAULT_COCKPIT_VIEW_TYPE, VaultCockpitView } from "./vault-cockpit";
 import { TaskContextRouterService } from "./task-context-router";
 import { TaskNotesUxService } from "./tasknotes-ux";
@@ -15,7 +15,7 @@ import {
 } from "./vault-command-metadata";
 
 export default class ContextNinePlugin extends Plugin {
-  settings: MasterPluginSettings;
+  settings: ContextNineSettings;
   private router: AttachmentRouter;
   private taskCapture: TaskCaptureService;
   private fileActions: FileActionService;
@@ -48,11 +48,23 @@ export default class ContextNinePlugin extends Plugin {
       void this.openVaultCockpit();
     });
 
+    this.addRibbonIcon("terminal", "Open vault TUI", () => {
+      this.openVaultTui();
+    });
+
     this.addCommand({
       id: "open-vault-cockpit",
       name: "Open vault command center",
       callback: () => {
         void this.openVaultCockpit();
+      },
+    });
+
+    this.addCommand({
+      id: "open-vault-tui",
+      name: "Open vault TUI",
+      callback: () => {
+        this.openVaultTui();
       },
     });
 
@@ -179,7 +191,7 @@ export default class ContextNinePlugin extends Plugin {
     }
     this.taskNotesUx.register(this);
 
-    this.addSettingTab(new ObsidianMasterSettingTab(this));
+    this.addSettingTab(new ContextNineSettingTab(this));
   }
 
   onunload(): void {
@@ -188,7 +200,7 @@ export default class ContextNinePlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const loadedSettings = (await this.loadData()) as Partial<MasterPluginSettings> | null;
+    const loadedSettings = (await this.loadData()) as Partial<ContextNineSettings> | null;
     const currentVaultRoot = this.getCurrentVaultRoot();
     this.settings = {
       ...DEFAULT_SETTINGS,
@@ -210,7 +222,39 @@ export default class ContextNinePlugin extends Plugin {
   }
 
   getVaultCommand(command: string, cwd: string): string {
-    return command === "vault" ? join(cwd, "_master/system/scripts/vault.py") : command;
+    return command === "vault" ? join(cwd, "_system/commands/vault.py") : command;
+  }
+
+  openVaultTui(): void {
+    const cwd = this.settings.vaultRoot || this.getCurrentVaultRoot() || DEFAULT_SETTINGS.vaultRoot;
+    if (!cwd) {
+      new Notice("Vault root is not configured.");
+      return;
+    }
+    const command = `export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; cd ${shellQuote(cwd)} && vault tui`;
+    const script = [
+      'tell application "Terminal"',
+      "activate",
+      `do script ${appleScriptQuote(command)}`,
+      "end tell",
+    ].join("\n");
+    const child = spawn("osascript", ["-e", script], {
+      cwd,
+      env: {
+        ...process.env,
+        PATH: process.env.PATH
+          ? `${process.env.HOME}/.local/bin:${process.env.PATH}`
+          : `${process.env.HOME}/.local/bin`,
+      },
+    });
+    child.on("error", (error) => {
+      new Notice(`Could not open vault TUI: ${error.message}`);
+    });
+    child.on("close", (exitCode) => {
+      if (exitCode !== 0) {
+        new Notice(`Could not open vault TUI: osascript exited ${exitCode}`);
+      }
+    });
   }
 
   async openVaultCockpit(): Promise<void> {
@@ -469,7 +513,7 @@ class VaultPromptArgsModal extends Modal {
   }
 }
 
-class ObsidianMasterSettingTab extends PluginSettingTab {
+class ContextNineSettingTab extends PluginSettingTab {
   constructor(private readonly plugin: ContextNinePlugin) {
     super(plugin.app, plugin);
   }
@@ -567,4 +611,12 @@ class ObsidianMasterSettingTab extends PluginSettingTab {
       });
     });
   }
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function appleScriptQuote(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }

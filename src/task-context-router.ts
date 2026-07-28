@@ -2,7 +2,7 @@ import { App, Component, Notice, TFile, normalizePath, type CachedMetadata } fro
 import { basename, isTaskFilePath, taskDestinationPathForContext } from "./path-utils";
 import { taskContextFromFrontmatter } from "./task-context";
 import { getTaskNotesPlugin } from "./tasknotes";
-import type { MasterPluginSettings, TaskNotesPluginLike } from "./types";
+import type { ContextNineSettings, TaskNotesPluginLike } from "./types";
 
 export class TaskContextRouterService {
   private readonly queuedPaths = new Set<string>();
@@ -11,7 +11,7 @@ export class TaskContextRouterService {
 
   constructor(
     private readonly app: App,
-    private readonly getSettings: () => MasterPluginSettings
+    private readonly getSettings: () => ContextNineSettings
   ) {}
 
   register(plugin: Component): void {

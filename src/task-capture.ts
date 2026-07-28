@@ -15,7 +15,7 @@ import {
 } from "./tasknotes";
 import type {
   CapturedSelection,
-  MasterPluginSettings,
+  ContextNineSettings,
   TaskInfoLike,
   TaskNotesPluginLike,
 } from "./types";
@@ -27,7 +27,7 @@ export class TaskCaptureService {
   constructor(
     private readonly app: App,
     private readonly router: AttachmentRouter,
-    private readonly getSettings: () => MasterPluginSettings,
+    private readonly getSettings: () => ContextNineSettings,
     private readonly saveSettings: () => Promise<void>
   ) {}
 
@@ -76,7 +76,7 @@ export class TaskCaptureService {
       this.app,
       captured,
       taskNotes,
-      this.getSettings().knownRoots.filter((root) => root.match(/^\d\d-/)),
+      this.getSettings().knownRoots.filter((root) => !root.startsWith("_")),
       this.getPreferredContext(),
       (data) => {
         void this.createTaskFromFallbackModal(captured, data, taskNotes);

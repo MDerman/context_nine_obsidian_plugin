@@ -8,13 +8,24 @@ export interface VaultCommandDefinition {
   aliases?: string[];
   cockpit?: boolean;
   palette?: boolean;
+  group?: string;
+  risk?: VaultCommandRisk;
+  tui?: boolean;
+  mode?: VaultCommandMode;
+  confirm?: boolean | "strong";
+  statusArgs?: string[];
   promptArgs?: VaultCommandPromptArg[];
 }
+
+export type VaultCommandRisk = "read" | "dry-run" | "apply" | "interactive" | "destructive";
+export type VaultCommandMode = "run" | "interactive" | "long-running";
 
 export interface VaultCommandPromptArg {
   label: string;
   placeholder?: string;
   argName?: string;
+  type?: "text" | "choice";
+  choices?: string[];
 }
 
 export interface VaultCommandLoadResult {
@@ -22,15 +33,15 @@ export interface VaultCommandLoadResult {
   warning?: string;
 }
 
-export const VAULT_COMMAND_METADATA_PATH = "_master/system/scripts/vault-commands.json";
-const LEGACY_VAULT_COMMAND_METADATA_PATH = "master/system/scripts/vault-commands.json";
+export const VAULT_COMMAND_METADATA_PATH = "_system/commands/vault-commands.json";
 
 export const FALLBACK_VAULT_COMMANDS: VaultCommandDefinition[] = [
   {
     id: "refresh",
     label: "Refresh",
-    description: "Ingest configured Apple Notes, then regenerate agent context.",
+    description: "Refresh integrations, schedules, periodic rollups, and Dashboard.",
     args: ["refresh"],
+    cockpit: true,
     palette: true,
   },
   {
@@ -54,12 +65,7 @@ export const FALLBACK_VAULT_COMMANDS: VaultCommandDefinition[] = [
     description: "Import the configured Apple Note into the vault inbox.",
     args: ["sync"],
     aliases: ["apple"],
-  },
-  {
-    id: "context",
-    label: "Context",
-    description: "Regenerate compact agent-readable context and dashboard files.",
-    args: ["context"],
+    cockpit: true,
   },
   {
     id: "content",
@@ -132,15 +138,10 @@ export async function loadVaultCommandMetadata(app: App): Promise<VaultCommandLo
     const json = await app.vault.adapter.read(VAULT_COMMAND_METADATA_PATH);
     return parseVaultCommandMetadata(json);
   } catch (error) {
-    try {
-      const json = await app.vault.adapter.read(LEGACY_VAULT_COMMAND_METADATA_PATH);
-      return parseVaultCommandMetadata(json);
-    } catch {
-      return {
-        commands: FALLBACK_VAULT_COMMANDS,
-        warning: `Could not read ${VAULT_COMMAND_METADATA_PATH}: ${messageForError(error)}`,
-      };
-    }
+    return {
+      commands: FALLBACK_VAULT_COMMANDS,
+      warning: `Could not read ${VAULT_COMMAND_METADATA_PATH}: ${messageForError(error)}`,
+    };
   }
 }
 
@@ -169,6 +170,31 @@ function normalizeCommand(value: unknown): VaultCommandDefinition | null {
   if (value.palette !== undefined && typeof value.palette !== "boolean") {
     return null;
   }
+  if (value.group !== undefined && typeof value.group !== "string") {
+    return null;
+  }
+  if (value.risk !== undefined && !isRisk(value.risk)) {
+    return null;
+  }
+  if (value.tui !== undefined && typeof value.tui !== "boolean") {
+    return null;
+  }
+  if (value.mode !== undefined && !isMode(value.mode)) {
+    return null;
+  }
+  if (
+    value.confirm !== undefined &&
+    typeof value.confirm !== "boolean" &&
+    value.confirm !== "strong"
+  ) {
+    return null;
+  }
+  if (
+    value.statusArgs !== undefined &&
+    (!Array.isArray(value.statusArgs) || !value.statusArgs.every((arg) => typeof arg === "string"))
+  ) {
+    return null;
+  }
   if (
     value.promptArgs !== undefined &&
     (!Array.isArray(value.promptArgs) || !value.promptArgs.every(isPromptArg))
@@ -184,6 +210,12 @@ function normalizeCommand(value: unknown): VaultCommandDefinition | null {
     aliases: value.aliases,
     cockpit: value.cockpit,
     palette: value.palette,
+    group: value.group,
+    risk: value.risk,
+    tui: value.tui,
+    mode: value.mode,
+    confirm: value.confirm,
+    statusArgs: value.statusArgs,
     promptArgs: value.promptArgs,
   };
 }
@@ -202,7 +234,24 @@ function isPromptArg(value: unknown): value is VaultCommandPromptArg {
   if (value.argName !== undefined && typeof value.argName !== "string") {
     return false;
   }
+  if (value.type !== undefined && value.type !== "text" && value.type !== "choice") {
+    return false;
+  }
+  if (
+    value.choices !== undefined &&
+    (!Array.isArray(value.choices) || !value.choices.every((choice) => typeof choice === "string"))
+  ) {
+    return false;
+  }
   return true;
+}
+
+function isRisk(value: unknown): value is VaultCommandRisk {
+  return ["read", "dry-run", "apply", "interactive", "destructive"].includes(String(value));
+}
+
+function isMode(value: unknown): value is VaultCommandMode {
+  return ["run", "interactive", "long-running"].includes(String(value));
 }
 
 function messageForError(error: unknown): string {

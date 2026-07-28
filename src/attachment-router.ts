@@ -8,7 +8,7 @@ import {
   splitExtension,
   topRoot,
 } from "./path-utils";
-import type { MasterPluginSettings } from "./types";
+import type { ContextNineSettings } from "./types";
 
 export interface RoutedMarkdown {
   markdown: string;
@@ -19,7 +19,7 @@ export interface RoutedMarkdown {
 export class AttachmentRouter {
   constructor(
     private readonly app: App,
-    private readonly getSettings: () => MasterPluginSettings
+    private readonly getSettings: () => ContextNineSettings
   ) {}
 
   async routeMarkdownAttachments(

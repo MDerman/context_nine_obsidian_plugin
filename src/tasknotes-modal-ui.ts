@@ -13,7 +13,7 @@ import {
   getTaskNotesPlugin,
   notifyTaskNotesChanged,
 } from "./tasknotes";
-import type { MasterPluginSettings, TaskInfoLike, TaskNotesPluginLike } from "./types";
+import type { ContextNineSettings, TaskInfoLike, TaskNotesPluginLike } from "./types";
 
 export class TaskNotesModalUiService {
   private patchRestore: (() => void) | null = null;
@@ -22,7 +22,7 @@ export class TaskNotesModalUiService {
 
   constructor(
     private readonly app: App,
-    private readonly getSettings: () => MasterPluginSettings
+    private readonly getSettings: () => ContextNineSettings
   ) {}
 
   register(plugin: Plugin): void {
@@ -317,14 +317,14 @@ export class TaskNotesModalUiService {
 
   private activeContexts(): string[] {
     return this.getSettings().knownRoots.filter((root) => {
-      if (!/^\d\d-/.test(root)) {
+      if (root.startsWith("_")) {
         return false;
       }
-      const home = this.app.vault.getAbstractFileByPath(`${root}/HOME.md`);
-      if (!(home instanceof TFile)) {
+      const contextNote = this.app.vault.getAbstractFileByPath(`${root}/${root}.md`);
+      if (!(contextNote instanceof TFile)) {
         return false;
       }
-      const cache = this.app.metadataCache.getFileCache(home);
+      const cache = this.app.metadataCache.getFileCache(contextNote);
       return cache?.frontmatter?.status === "active";
     });
   }

@@ -9,10 +9,11 @@ Context Nine is desktop-only. Vault Command Center and background sync commands 
 - Capture selected Markdown into a new TaskNotes task.
 - Append selected Markdown to an existing TaskNotes task under `## Captures`.
 - Route attachment links from captured selections into destination context folders.
-- Route pasted or dropped inbox attachments from `master/_obsidian/attachments/_inbox`.
+- Route pasted or dropped inbox attachments from `_system/_obsidian/attachments/_inbox`.
 - Move TaskNotes files when context fields change.
 - Add file delete actions for file explorer items, Bases kanban cards, and TaskNotes edit modals where possible.
 - Open a right-sidebar Vault Command Center for common `vault` terminal commands.
+- Open the full-screen `vault tui` control room for backup/sync, upgrade, command execution, logs, and interactive setup flows.
 
 ## Commands
 
@@ -31,6 +32,22 @@ Context Nine is desktop-only. Vault Command Center and background sync commands 
 Vault Command Center shows local command output in the right sidebar and keeps a Git Commit action close at hand. Day-to-day vault commands live in the Obsidian command palette and are loaded from the vault command metadata file.
 
 Output streams live into the panel with stdout, stderr, status, exit code, and timestamps visible after completion.
+
+## Vault TUI
+
+The Textual TUI lives under `python/` and is exposed through the vault dispatcher:
+
+```bash
+vault tui
+```
+
+Development:
+
+```bash
+cd python
+uv run pytest
+uv run vault-tui --vault-root "$(vault root)"
+```
 
 ## Development
 
