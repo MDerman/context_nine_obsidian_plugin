@@ -1,6 +1,6 @@
 {
   "name": "context-nine",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TaskNotes capture, context routing, vault command cockpit, and attachment cleanup tools for Obsidian.",
   "main": "main.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "@types/node": "^20.17.24",
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.25.0",
-    "obsidian": "^1.8.7",
+    "obsidian": "^1.12.3",
     "typescript": "^5.7.3",
     "vitest": "^3.0.7"
   }

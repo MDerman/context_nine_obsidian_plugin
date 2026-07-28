@@ -14,6 +14,7 @@ Context Nine is desktop-only. Vault Command Center and background sync commands 
 - Add file delete actions for file explorer items, Bases kanban cards, and TaskNotes edit modals where possible.
 - Open a right-sidebar Vault Command Center for common `vault` terminal commands.
 - Open the full-screen `vault tui` control room for backup/sync, upgrade, command execution, logs, and interactive setup flows.
+- Replace open past periodic-note tabs with the current daily, weekly, monthly, quarterly, or yearly note after `vault refresh`.
 
 ## Commands
 
@@ -26,6 +27,17 @@ Context Nine is desktop-only. Vault Command Center and background sync commands 
 | Delete hovered or selected file | Uses Obsidian delete confirmation and trash behavior. |
 | New note in hovered folder | Creates `Untitled.md` in hovered file-explorer folder, falling back to Obsidian new note behavior. |
 | Open vault command center | Opens command runner panel in right sidebar. |
+| Refresh past periodic-note tabs | Reuses each stale Markdown leaf for the current note in the same context or vault-rollup scope. Current and future notes stay open. |
+
+## Vault Refresh Handoff
+
+Context Nine reads `_system/state/refresh-complete.json` after startup and whenever `vault refresh` publishes a new successful run. It also exposes the native Obsidian CLI command:
+
+```bash
+obsidian context-nine:refresh-periodic-tabs date=2026-07-28 run-id=<refresh-run-id>
+```
+
+The marker is the durable fallback when Obsidian or its CLI is unavailable. The plugin never edits `.obsidian/workspace.json`; it updates live Markdown leaves through the Obsidian API.
 
 ## Vault Command Center
 

@@ -9,6 +9,7 @@ import { VAULT_COCKPIT_VIEW_TYPE, VaultCockpitView } from "./vault-cockpit";
 import { TaskContextRouterService } from "./task-context-router";
 import { TaskNotesUxService } from "./tasknotes-ux";
 import { TaskNotesModalUiService } from "./tasknotes-modal-ui";
+import { PeriodicTabRolloverService } from "./periodic-tab-rollover-service";
 import {
   loadVaultCommandMetadata,
   type VaultCommandDefinition,
@@ -22,6 +23,7 @@ export default class ContextNinePlugin extends Plugin {
   private taskContextRouter: TaskContextRouterService;
   private taskNotesUx: TaskNotesUxService;
   private taskNotesModalUi: TaskNotesModalUiService;
+  private periodicTabRollover: PeriodicTabRolloverService;
   private queuedInboxPaths = new Set<string>();
   private gcalSyncProcess: ChildProcessWithoutNullStreams | null = null;
 
@@ -32,6 +34,7 @@ export default class ContextNinePlugin extends Plugin {
     this.taskContextRouter = new TaskContextRouterService(this.app, () => this.settings);
     this.taskNotesUx = new TaskNotesUxService(this.app);
     this.taskNotesModalUi = new TaskNotesModalUiService(this.app, () => this.settings);
+    this.periodicTabRollover = new PeriodicTabRolloverService(this.app);
     this.taskCapture = new TaskCaptureService(
       this.app,
       this.router,
@@ -174,6 +177,33 @@ export default class ContextNinePlugin extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: "refresh-past-periodic-tabs",
+      name: "Refresh past periodic-note tabs",
+      callback: () => {
+        void this.periodicTabRollover.rollForwardToToday();
+      },
+    });
+
+    this.registerCliHandler(
+      "context-nine:refresh-periodic-tabs",
+      "Replace open past periodic-note tabs with the current period in the same scope.",
+      {
+        date: {
+          value: "<YYYY-MM-DD>",
+          description: "Only run when this date is the machine's current local date.",
+        },
+        "run-id": {
+          value: "<id>",
+          description: "Refresh completion run ID used to deduplicate notifications.",
+        },
+      },
+      async (params) => {
+        const result = await this.periodicTabRollover.handleCli(params.date, params["run-id"]);
+        return JSON.stringify(result);
+      }
+    );
+
     if (this.settings.enableAutoAttachmentRouter) {
       this.registerAttachmentWatcher();
     }
@@ -190,6 +220,7 @@ export default class ContextNinePlugin extends Plugin {
       this.taskNotesModalUi.register(this);
     }
     this.taskNotesUx.register(this);
+    this.periodicTabRollover.register(this);
 
     this.addSettingTab(new ContextNineSettingTab(this));
   }
