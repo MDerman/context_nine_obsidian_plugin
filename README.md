@@ -2,6 +2,8 @@
 
 TaskNotes capture, context routing, vault command cockpit, and attachment cleanup tools for Obsidian.
 
+Published by [Context Nine (CTX9)](https://ctx9.com/), an enterprise AI strategy and engineering studio founded by Matthew Derman.
+
 Context Nine is desktop-only. Vault Command Center and background sync commands use local Node.js process APIs.
 
 ## Features
