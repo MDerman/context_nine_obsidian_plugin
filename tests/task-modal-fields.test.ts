@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { entityLink, firstStringValue, linkLabel, vaultCreateArgs } from "../src/task-modal-fields";
+import {
+  entityLink,
+  firstStringValue,
+  linkLabel,
+  taskFieldsForContextSelection,
+  vaultCreateArgs,
+} from "../src/task-modal-fields";
 
 describe("task modal field helpers", () => {
   it("formats entity links without markdown suffix", () => {
@@ -29,5 +35,16 @@ describe("task modal field helpers", () => {
       "--epic",
       "Growth",
     ]);
+  });
+
+  it("clears project and epic only when the context changes", () => {
+    expect(taskFieldsForContextSelection("impression.nosync", "ctx9")).toEqual({
+      contexts: ["ctx9"],
+      projects: null,
+      epic: null,
+    });
+    expect(taskFieldsForContextSelection("ctx9", "ctx9")).toEqual({
+      contexts: ["ctx9"],
+    });
   });
 });

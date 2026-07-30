@@ -4,6 +4,26 @@ export interface VaultEntityChoice {
   link: string;
 }
 
+export interface TaskFieldPatch {
+  contexts?: string[] | null;
+  projects?: string[] | null;
+  epic?: string | null;
+}
+
+export function taskFieldsForContextSelection(
+  currentContext: string,
+  selectedContext: string
+): TaskFieldPatch {
+  if (currentContext === selectedContext) {
+    return { contexts: [selectedContext] };
+  }
+  return {
+    contexts: [selectedContext],
+    projects: null,
+    epic: null,
+  };
+}
+
 export function stripMarkdownExtension(path: string): string {
   return path.endsWith(".md") ? path.slice(0, -3) : path;
 }

@@ -1,4 +1,4 @@
-import { App, Notice, Plugin, TFile, setIcon } from "obsidian";
+import { App, Notice, Plugin, TFile, parseYaml, setIcon } from "obsidian";
 import { normalizeTaskAliases } from "./tasknotes-aliases";
 import {
   buildKanbanTaskDefaults,
@@ -6,11 +6,10 @@ import {
   contextFromWikiLinkValue,
   mergeKanbanTaskDefaults,
   normalizeSwimlaneProjectValue,
-  parseContextFromBaseText,
-  parseEpicPathFromBaseText,
+  resolveKanbanViewScope,
 } from "./tasknotes-kanban-defaults";
 import { getTaskNotesPlugin } from "./tasknotes";
-import type { TaskInfoLike, TaskNotesPluginLike } from "./types";
+import type { ContextNineSettings, TaskInfoLike, TaskNotesPluginLike } from "./types";
 
 interface EpicChoice {
   label: string;
@@ -27,7 +26,10 @@ export class TaskNotesUxService {
   private restoreCreateTask: (() => void) | null = null;
   private restoreKanbanCreateTask: (() => void) | null = null;
 
-  constructor(private readonly app: App) {}
+  constructor(
+    private readonly app: App,
+    private readonly getSettings: () => ContextNineSettings
+  ) {}
 
   register(plugin: Plugin): void {
     const configure = (): void => {
@@ -192,13 +194,13 @@ export class TaskNotesUxService {
     }
 
     const baseFile = this.baseFileForElement(column);
-    this.openTaskModalWithKanbanDefaults(taskNotes, status, project, baseFile).catch(async (error) => {
+    const activeViewName = this.activeViewNameForElement(column);
+    this.openTaskModalWithKanbanDefaults(taskNotes, status, project, baseFile, activeViewName).catch(async (error) => {
       console.error("Failed to open kanban task modal with defaults:", error);
       new Notice("Failed to read kanban defaults.");
-      const baseContext = baseFile ? await this.contextFromBaseFile(baseFile) : null;
       const fallbackContext = project
         ? this.contextFromWikiLink(project)
-        : baseContext ?? contextFromPathRoot(baseFile?.path);
+        : contextFromPathRoot(baseFile?.path, this.getSettings().knownRoots);
       const defaults = buildKanbanTaskDefaults({
         status,
         priority: taskNotes.settings?.defaultTaskPriority ?? "normal",
@@ -216,15 +218,17 @@ export class TaskNotesUxService {
     taskNotes: TaskNotesPluginLike,
     status: string,
     project: string | null,
-    baseFile: TFile | null
+    baseFile: TFile | null,
+    activeViewName: string | null
   ): Promise<void> {
-    const epic = await this.epicChoiceFromBaseFile(baseFile);
-    const baseContext = baseFile ? await this.contextFromBaseFile(baseFile) : null;
+    const scope = await this.kanbanScopeFromBaseFile(baseFile, activeViewName);
+    const epic = scope.epicPath ? this.epicChoiceFromPath(scope.epicPath) : null;
+    const knownRoots = this.getSettings().knownRoots;
     const context =
       (project ? this.contextFromWikiLink(project) : null) ??
-      contextFromPathRoot(epic?.path) ??
-      baseContext ??
-      contextFromPathRoot(baseFile?.path);
+      contextFromPathRoot(epic?.path, knownRoots) ??
+      scope.context ??
+      contextFromPathRoot(baseFile?.path, knownRoots);
     const defaults = buildKanbanTaskDefaults({
       status,
       priority: taskNotes.settings?.defaultTaskPriority ?? "normal",
@@ -242,7 +246,7 @@ export class TaskNotesUxService {
   }
 
   private contextFromWikiLink(value: string): string | null {
-    return contextFromWikiLinkValue(value);
+    return contextFromWikiLinkValue(value, this.getSettings().knownRoots);
   }
 
   private addTaskButtonLabel(status: string, project: string | null): string {
@@ -324,18 +328,24 @@ export class TaskNotesUxService {
     return null;
   }
 
-  private async contextFromBaseFile(file: TFile): Promise<string | null> {
-    const text = await this.app.vault.cachedRead(file);
-    return parseContextFromBaseText(text);
+  private activeViewNameForElement(element: HTMLElement): string | null {
+    const view = element.closest(".bases-view[data-view-name]");
+    return view instanceof HTMLElement ? view.dataset.viewName ?? null : null;
   }
 
-  private async epicChoiceFromBaseFile(file: TFile | null): Promise<EpicChoice | null> {
+  private async kanbanScopeFromBaseFile(
+    file: TFile | null,
+    activeViewName: string | null
+  ): Promise<{ context: string | null; epicPath: string | null }> {
     if (!file) {
-      return null;
+      return { context: null, epicPath: null };
     }
     const text = await this.app.vault.cachedRead(file);
-    const epicPath = parseEpicPathFromBaseText(text);
-    return epicPath ? this.epicChoiceFromPath(epicPath) : null;
+    return resolveKanbanViewScope(
+      parseYaml(text),
+      activeViewName,
+      this.getSettings().knownRoots
+    );
   }
 
   private epicChoiceFromPath(path: string): EpicChoice {

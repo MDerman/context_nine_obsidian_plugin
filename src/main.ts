@@ -32,8 +32,12 @@ export default class ContextNinePlugin extends Plugin {
     this.router = new AttachmentRouter(this.app, () => this.settings);
     this.fileActions = new FileActionService(this.app);
     this.taskContextRouter = new TaskContextRouterService(this.app, () => this.settings);
-    this.taskNotesUx = new TaskNotesUxService(this.app);
-    this.taskNotesModalUi = new TaskNotesModalUiService(this.app, () => this.settings);
+    this.taskNotesUx = new TaskNotesUxService(this.app, () => this.settings);
+    this.taskNotesModalUi = new TaskNotesModalUiService(
+      this.app,
+      () => this.settings,
+      (file) => this.fileActions.deleteFile(file)
+    );
     this.periodicTabRollover = new PeriodicTabRolloverService(this.app);
     this.taskCapture = new TaskCaptureService(
       this.app,

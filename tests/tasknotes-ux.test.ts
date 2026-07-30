@@ -6,6 +6,7 @@ import {
   normalizeSwimlaneProjectValue,
   parseContextFromBaseText,
   parseEpicPathFromBaseText,
+  resolveKanbanViewScope,
 } from "../src/tasknotes-kanban-defaults";
 
 const epics = [
@@ -68,6 +69,93 @@ filters:
     - file.inFolder("01-personal/_obsidian/tasks")
 `)
     ).toBe("01-personal");
+  });
+
+  it("resolves only the active view scope in a multi-view base", () => {
+    const definition = {
+      filters: { and: ['file.hasTag("task")'] },
+      views: [
+        {
+          name: "Impression - Backlog",
+          filters: {
+            and: ['epic == link("impression.nosync/_obsidian/epics/Backlog")'],
+          },
+        },
+        {
+          name: "Ctx9",
+          filters: {
+            and: ['file.inFolder("ctx9/_obsidian/tasks")'],
+          },
+        },
+        {
+          name: "Matt Derman",
+          filters: {
+            and: ['file.inFolder("matt-derman/_obsidian/tasks")'],
+          },
+        },
+        {
+          name: "Impression.nosync",
+          filters: {
+            and: ['file.inFolder("impression.nosync/_obsidian/tasks")'],
+          },
+        },
+        {
+          name: "Personal",
+          filters: {
+            and: ['file.inFolder("personal/_obsidian/tasks")'],
+          },
+        },
+      ],
+    };
+    const knownRoots = ["ctx9", "impression.nosync", "matt-derman", "personal"];
+
+    expect(resolveKanbanViewScope(definition, "Ctx9", knownRoots)).toEqual({
+      context: "ctx9",
+      epicPath: null,
+    });
+    expect(resolveKanbanViewScope(definition, "Matt Derman", knownRoots)).toEqual({
+      context: "matt-derman",
+      epicPath: null,
+    });
+    expect(resolveKanbanViewScope(definition, "Impression.nosync", knownRoots)).toEqual({
+      context: "impression.nosync",
+      epicPath: null,
+    });
+    expect(resolveKanbanViewScope(definition, "Personal", knownRoots)).toEqual({
+      context: "personal",
+      epicPath: null,
+    });
+    expect(resolveKanbanViewScope(definition, "Impression - Backlog", knownRoots)).toEqual({
+      context: null,
+      epicPath: "impression.nosync/_obsidian/epics/Backlog",
+    });
+  });
+
+  it("leaves unscoped and ambiguous views without a context default", () => {
+    const definition = {
+      views: [
+        { name: "All Tasks", filters: { and: ['status != "done"'] } },
+        {
+          name: "Mixed",
+          filters: {
+            or: [
+              'file.inFolder("ctx9/_obsidian/tasks")',
+              'file.inFolder("personal/_obsidian/tasks")',
+            ],
+          },
+        },
+      ],
+    };
+    const knownRoots = ["ctx9", "personal"];
+
+    expect(resolveKanbanViewScope(definition, "All Tasks", knownRoots)).toEqual({
+      context: null,
+      epicPath: null,
+    });
+    expect(resolveKanbanViewScope(definition, "Mixed", knownRoots)).toEqual({
+      context: null,
+      epicPath: null,
+    });
   });
 
   it("merges kanban defaults into blank task data", () => {

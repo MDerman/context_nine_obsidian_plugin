@@ -207,6 +207,33 @@
   color: white;
 }
 
+.omp-delete-task-button {
+  background-color: var(--background-modifier-error);
+  color: var(--text-on-accent);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.omp-delete-task-button:hover:not(:disabled) {
+  background-color: var(--background-modifier-error-hover);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--background-modifier-error) 35%, transparent);
+  color: var(--text-on-accent);
+  transform: translateY(-1px);
+}
+
+.omp-delete-task-button:active:not(:disabled) {
+  box-shadow: none;
+  transform: translateY(0) scale(0.97);
+}
+
+.omp-delete-task-button.is-deleting {
+  cursor: progress;
+  opacity: 0.72;
+}
+
 .omp-epic-picker {
   min-width: 160px;
   margin-left: 8px;

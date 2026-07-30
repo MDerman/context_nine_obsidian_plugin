@@ -5,7 +5,9 @@ import {
   entityLink,
   firstStringValue,
   linkLabel,
+  taskFieldsForContextSelection,
   vaultCreateArgs,
+  type TaskFieldPatch,
   type VaultEntityChoice,
 } from "./task-modal-fields";
 import {
@@ -22,7 +24,8 @@ export class TaskNotesModalUiService {
 
   constructor(
     private readonly app: App,
-    private readonly getSettings: () => ContextNineSettings
+    private readonly getSettings: () => ContextNineSettings,
+    private readonly deleteFile: (file: TFile) => Promise<boolean>
   ) {}
 
   register(plugin: Plugin): void {
@@ -110,7 +113,13 @@ export class TaskNotesModalUiService {
   }
 
   private enhanceTaskModal(task: Pick<TaskInfoLike, "path" | "title">, modal: Element | undefined, closeModal?: () => void): void {
-    if (!(modal instanceof HTMLElement) || modal.hasClass("omp-task-modal-enhanced")) {
+    if (!(modal instanceof HTMLElement)) {
+      return;
+    }
+    if (closeModal) {
+      this.closers.set(modal, closeModal);
+    }
+    if (modal.hasClass("omp-task-modal-enhanced")) {
       return;
     }
     const file = this.fileForTask(task.path);
@@ -126,9 +135,6 @@ export class TaskNotesModalUiService {
     }
 
     modal.addClass("omp-task-modal-enhanced");
-    if (closeModal) {
-      this.closers.set(modal, closeModal);
-    }
     this.normalizeTitleLabel(left);
     this.hideNativePrimaryRows(left);
 
@@ -147,7 +153,15 @@ export class TaskNotesModalUiService {
     const epicButton = this.addDropdownRow(primary, "Epic");
     const projectButton = this.addDropdownRow(primary, "Project");
     const refresh = (): void => void this.refreshButtons(file, contextButton, epicButton, projectButton);
-    contextButton.addEventListener("click", () => void this.openContextMenu(file, contextButton, refresh));
+    contextButton.addEventListener("click", () =>
+      void this.openContextMenu(
+        file,
+        contextButton,
+        epicButton,
+        projectButton,
+        refresh
+      )
+    );
     epicButton.addEventListener("click", () => void this.openEntityMenu("epic", file, epicButton, refresh));
     projectButton.addEventListener("click", () => void this.openEntityMenu("project", file, projectButton, refresh));
     refresh();
@@ -185,16 +199,32 @@ export class TaskNotesModalUiService {
     this.syncNativeInputs(file, context, metadata?.epic, metadata?.projects);
   }
 
-  private async openContextMenu(file: TFile, button: HTMLElement, refresh: () => void): Promise<void> {
+  private async openContextMenu(
+    file: TFile,
+    contextButton: HTMLButtonElement,
+    epicButton: HTMLButtonElement,
+    projectButton: HTMLButtonElement,
+    refresh: () => void
+  ): Promise<void> {
+    const currentContext = contextButton.textContent?.trim() || this.currentContext(file);
     const menu = new Menu();
     for (const context of await this.activeContexts()) {
       menu.addItem((item) => {
         item.setTitle(context).onClick(() => {
-          void this.writeTaskFields(file, { contexts: [context] }).then(refresh);
+          const fields = taskFieldsForContextSelection(currentContext, context);
+          void this.writeTaskFields(file, fields).then(() => {
+            if (currentContext === context) {
+              refresh();
+              return;
+            }
+            contextButton.setText(context);
+            epicButton.setText("No epic");
+            projectButton.setText("No project");
+          });
         });
       });
     }
-    menu.showAtPosition(this.menuPosition(button));
+    menu.showAtPosition(this.menuPosition(contextButton));
   }
 
   private async openEntityMenu(
@@ -243,38 +273,57 @@ export class TaskNotesModalUiService {
 
   private async writeTaskFields(
     file: TFile,
-    fields: { contexts?: string[]; projects?: string[]; epic?: string }
+    fields: TaskFieldPatch
   ): Promise<void> {
-    this.syncWrittenFields(file, fields);
+    const modal = this.enhancedModalForFile(file);
     const taskNotes = getTaskNotesPlugin(this.app);
     await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-      if (fields.contexts) {
-        frontmatter[getTaskNotesField(taskNotes, "contexts")] = fields.contexts.slice(0, 1);
+      if (hasOwn(fields, "contexts")) {
+        const field = getTaskNotesField(taskNotes, "contexts");
+        if (fields.contexts?.[0]) {
+          frontmatter[field] = fields.contexts.slice(0, 1);
+        } else {
+          delete frontmatter[field];
+        }
       }
-      if (fields.projects) {
-        frontmatter[getTaskNotesField(taskNotes, "projects")] = fields.projects.slice(0, 1);
+      if (hasOwn(fields, "projects")) {
+        const field = getTaskNotesField(taskNotes, "projects");
+        if (fields.projects?.[0]) {
+          frontmatter[field] = fields.projects.slice(0, 1);
+        } else {
+          delete frontmatter[field];
+        }
       }
-      if (fields.epic) {
-        frontmatter.epic = fields.epic;
+      if (hasOwn(fields, "epic")) {
+        if (fields.epic) {
+          frontmatter.epic = fields.epic;
+        } else {
+          delete frontmatter.epic;
+        }
       }
       frontmatter[getTaskNotesField(taskNotes, "dateModified")] = new Date().toISOString();
     });
+    this.syncWrittenFields(file, fields, modal);
     notifyTaskNotesChanged(taskNotes, file);
   }
 
-  private syncWrittenFields(file: TFile, fields: { contexts?: string[]; projects?: string[]; epic?: string }): void {
-    const modal = this.enhancedModalForFile(file);
+  private syncWrittenFields(
+    file: TFile,
+    fields: TaskFieldPatch,
+    knownModal?: HTMLElement | null
+  ): void {
+    const modal = knownModal ?? this.enhancedModalForFile(file);
     if (!modal) {
       return;
     }
-    if (fields.contexts?.[0]) {
-      this.setInputNearLabel(modal, /^contexts?$/i, fields.contexts[0]);
+    if (hasOwn(fields, "contexts")) {
+      this.setInputNearLabel(modal, /^contexts?$/i, fields.contexts?.[0] ?? "");
     }
-    if (fields.epic) {
-      this.setInputNearText(modal, /choose epic/i, fields.epic);
+    if (hasOwn(fields, "epic")) {
+      this.setInputNearText(modal, /choose epic/i, fields.epic ?? "");
     }
-    if (fields.projects?.[0]) {
-      this.setInputNearLabel(modal, /^projects?$/i, fields.projects[0]);
+    if (hasOwn(fields, "projects")) {
+      this.setInputNearLabel(modal, /^projects?$/i, fields.projects?.[0] ?? "");
     }
   }
 
@@ -517,13 +566,22 @@ export class TaskNotesModalUiService {
     button.textContent = "Delete note";
     button.addClass("mod-warning", "omp-delete-task-button");
     button.addEventListener("click", async () => {
-      const confirmed = await this.app.fileManager.promptForDeletion(file);
-      if (!confirmed) {
+      if (button.disabled) {
         return;
       }
-      await this.app.fileManager.trashFile(file);
-      new Notice(`File deleted: ${file.path}`);
-      this.closeTaskModal(modal);
+      button.disabled = true;
+      button.addClass("is-deleting");
+      try {
+        const deleted = await this.deleteFile(file);
+        if (deleted) {
+          this.closeTaskModal(modal);
+        }
+      } finally {
+        if (modal.isConnected) {
+          button.disabled = false;
+          button.removeClass("is-deleting");
+        }
+      }
     });
     if (archiveButton?.parentElement === buttonRow) {
       archiveButton.insertAdjacentElement("afterend", button);
@@ -547,6 +605,10 @@ export class TaskNotesModalUiService {
     }
     modal.closest(".modal-container")?.remove();
   }
+}
+
+function hasOwn(value: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
 }
 
 class EntityNameModal extends Modal {

@@ -18,10 +18,30 @@ const PATH_SELECTORS = [
 export class FileActionService {
   private hoveredTarget: HoverTarget | null = null;
   private lastMousePosition: { x: number; y: number } | null = null;
+  private pendingTaskMenus = new WeakMap<MouseEvent, TFile>();
+  private restoreTaskMenuPatch: (() => void) | null = null;
 
   constructor(private readonly app: App) {}
 
   register(plugin: Plugin): void {
+    this.patchTaskCardMenus(plugin);
+    plugin.registerDomEvent(
+      document,
+      "contextmenu",
+      (event) => {
+        this.rememberTaskCardMenu(event, false);
+      },
+      true
+    );
+    plugin.registerDomEvent(
+      document,
+      "click",
+      (event) => {
+        this.rememberTaskCardMenu(event, true);
+      },
+      true
+    );
+
     plugin.registerDomEvent(document, "mousemove", (event) => {
       this.lastMousePosition = { x: event.clientX, y: event.clientY };
       this.hoveredTarget = this.targetFromEvent(event);
@@ -86,6 +106,12 @@ export class FileActionService {
   }
 
   private showContextMenu(event: MouseEvent): void {
+    if (
+      event.target instanceof Element &&
+      event.target.closest(".tasknotes-plugin [data-task-path]")
+    ) {
+      return;
+    }
     const target = this.targetFromEvent(event);
     if (!target) {
       return;
@@ -112,6 +138,59 @@ export class FileActionService {
         });
     });
     menu.showAtMouseEvent(event);
+  }
+
+  private patchTaskCardMenus(plugin: Plugin): void {
+    if (this.restoreTaskMenuPatch) {
+      return;
+    }
+    const originalShow = Menu.prototype.showAtMouseEvent;
+    const service = this;
+    const patchedShow = function (this: Menu, event: MouseEvent): Menu {
+      const file = service.pendingTaskMenus.get(event);
+      if (file) {
+        service.pendingTaskMenus.delete(event);
+        this.addSeparator();
+        this.addItem((item) => {
+          item.setTitle("Delete note").setIcon("trash").onClick(() => {
+            void service.deleteFile(file);
+          });
+        });
+      }
+      return originalShow.call(this, event);
+    };
+    Menu.prototype.showAtMouseEvent = patchedShow;
+    const restore = (): void => {
+      if (Menu.prototype.showAtMouseEvent === patchedShow) {
+        Menu.prototype.showAtMouseEvent = originalShow;
+      }
+      if (this.restoreTaskMenuPatch === restore) {
+        this.restoreTaskMenuPatch = null;
+      }
+    };
+    this.restoreTaskMenuPatch = restore;
+    plugin.register(restore);
+  }
+
+  private rememberTaskCardMenu(event: MouseEvent, optionsButtonOnly: boolean): void {
+    if (!(event.target instanceof Element)) {
+      return;
+    }
+    if (
+      optionsButtonOnly &&
+      !event.target.closest(".task-card__context-menu, [aria-label='Task options']")
+    ) {
+      return;
+    }
+    const card = event.target.closest(".tasknotes-plugin [data-task-path]");
+    if (!(card instanceof HTMLElement)) {
+      return;
+    }
+    const path = card.dataset.taskPath;
+    const file = path ? this.app.vault.getAbstractFileByPath(path) : null;
+    if (file instanceof TFile) {
+      this.pendingTaskMenus.set(event, file);
+    }
   }
 
   private async createNoteInFolder(folder: TFolder): Promise<void> {
