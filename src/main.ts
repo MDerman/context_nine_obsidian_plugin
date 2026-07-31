@@ -10,6 +10,7 @@ import { TaskContextRouterService } from "./task-context-router";
 import { TaskNotesUxService } from "./tasknotes-ux";
 import { TaskNotesModalUiService } from "./tasknotes-modal-ui";
 import { PeriodicTabRolloverService } from "./periodic-tab-rollover-service";
+import { WorkspaceTabRowService } from "./workspace-tab-row-service";
 import {
   loadVaultCommandMetadata,
   type VaultCommandDefinition,
@@ -24,6 +25,7 @@ export default class ContextNinePlugin extends Plugin {
   private taskNotesUx: TaskNotesUxService;
   private taskNotesModalUi: TaskNotesModalUiService;
   private periodicTabRollover: PeriodicTabRolloverService;
+  private workspaceTabRows: WorkspaceTabRowService;
   private queuedInboxPaths = new Set<string>();
   private gcalSyncProcess: ChildProcessWithoutNullStreams | null = null;
 
@@ -39,6 +41,7 @@ export default class ContextNinePlugin extends Plugin {
       (file) => this.fileActions.deleteFile(file)
     );
     this.periodicTabRollover = new PeriodicTabRolloverService(this.app);
+    this.workspaceTabRows = new WorkspaceTabRowService(this.app);
     this.taskCapture = new TaskCaptureService(
       this.app,
       this.router,
@@ -225,6 +228,7 @@ export default class ContextNinePlugin extends Plugin {
     }
     this.taskNotesUx.register(this);
     this.periodicTabRollover.register(this);
+    this.workspaceTabRows.register(this);
 
     this.addSettingTab(new ContextNineSettingTab(this));
   }
