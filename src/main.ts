@@ -143,12 +143,6 @@ export default class ContextNinePlugin extends Plugin {
     this.addCommand({
       id: "delete-hovered-or-active-file",
       name: "Delete hovered or selected file",
-      hotkeys: [
-        {
-          modifiers: ["Mod"],
-          key: "Backspace",
-        },
-      ],
       callback: () => {
         void this.fileActions.deleteHoveredOrActiveFile();
       },
