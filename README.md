@@ -25,7 +25,7 @@ Context Nine is desktop-only. Vault Command Center and background sync commands 
 | --- | --- |
 | Capture selection to new TaskNotes task | Opens TaskNotes create dialog. If Markdown is selected, injects selection into task details on save, routes selected attachments, then deletes source selection after success. |
 | Append selection to existing TaskNotes task | Opens a task picker, appends selected block under `## Captures`, routes selected attachments, then deletes source selection after success. |
-| Copy current note directory | Copies the active note's vault-relative parent directory. Default shortcut on macOS: `Cmd+Option+Shift+C`. |
+| Copy current note directory | Copies the active note's vault-relative parent directory. Default shortcut on macOS: `Cmd+Option+C`. |
 | Route inbox attachments for active note | Moves queued inbox attachments into active note context. |
 | Route TaskNotes files by context | Moves TaskNotes files to folders matching their context metadata. |
 | Delete hovered or selected file | Uses Obsidian delete confirmation and trash behavior. |

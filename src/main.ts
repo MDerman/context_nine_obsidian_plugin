@@ -110,7 +110,7 @@ export default class ContextNinePlugin extends Plugin {
       name: "Copy current note directory",
       hotkeys: [
         {
-          modifiers: ["Mod", "Alt", "Shift"],
+          modifiers: ["Mod", "Alt"],
           key: "C",
         },
       ],
