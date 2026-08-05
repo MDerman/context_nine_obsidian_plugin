@@ -56,6 +56,10 @@ export function dirname(path: string): string {
   return parts.join("/");
 }
 
+export function noteDirectory(path: string): string {
+  return dirname(path) || ".";
+}
+
 export function extension(path: string): string {
   const name = basename(path);
   const idx = name.lastIndexOf(".");

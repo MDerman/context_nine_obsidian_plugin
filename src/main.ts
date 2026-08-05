@@ -10,6 +10,7 @@ import { TaskContextRouterService } from "./task-context-router";
 import { TaskNotesUxService } from "./tasknotes-ux";
 import { TaskNotesModalUiService } from "./tasknotes-modal-ui";
 import { PeriodicTabRolloverService } from "./periodic-tab-rollover-service";
+import { noteDirectory } from "./path-utils";
 import { WorkspaceTabRowService } from "./workspace-tab-row-service";
 import {
   loadVaultCommandMetadata,
@@ -101,6 +102,20 @@ export default class ContextNinePlugin extends Plugin {
       name: "Focus right sidebar",
       callback: () => {
         void this.focusRightSidebar();
+      },
+    });
+
+    this.addCommand({
+      id: "copy-current-note-directory",
+      name: "Copy current note directory",
+      hotkeys: [
+        {
+          modifiers: ["Mod", "Alt", "Shift"],
+          key: "C",
+        },
+      ],
+      callback: () => {
+        void this.copyCurrentNoteDirectory();
       },
     });
 
@@ -375,6 +390,23 @@ export default class ContextNinePlugin extends Plugin {
 
     await this.app.workspace.revealLeaf(leaf);
     this.app.workspace.setActiveLeaf(leaf, { focus: true });
+  }
+
+  private async copyCurrentNoteDirectory(): Promise<void> {
+    const file = this.app.workspace.getActiveFile();
+    if (!file) {
+      new Notice("Open a note before copying its directory.");
+      return;
+    }
+
+    const directory = noteDirectory(file.path);
+    try {
+      await navigator.clipboard.writeText(directory);
+      new Notice(`Copied note directory: ${directory}`);
+    } catch (error) {
+      console.error("Could not copy current note directory", error);
+      new Notice("Could not copy the current note directory.");
+    }
   }
 
   private getMainPaneLeaves(): WorkspaceLeaf[] {

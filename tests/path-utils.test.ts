@@ -3,6 +3,7 @@ import {
   attachmentFolderForRoot,
   firstNonEmptyLine,
   isTaskFilePath,
+  noteDirectory,
   slugifyTaskTitle,
   taskDestinationPathForContext,
   topRoot,
@@ -18,6 +19,11 @@ describe("path utilities", () => {
 
   it("builds flat attachment folder paths", () => {
     expect(attachmentFolderForRoot("03-impression")).toBe("03-impression/_obsidian/attachments");
+  });
+
+  it("returns a vault-relative note directory", () => {
+    expect(noteDirectory("personal/notes/Idea.md")).toBe("personal/notes");
+    expect(noteDirectory("Idea.md")).toBe(".");
   });
 
   it("derives clean task titles", () => {
