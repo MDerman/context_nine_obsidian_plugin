@@ -9,6 +9,13 @@ import { VaultCommandRunner, type VaultRunFinish, type VaultRunSpec, type VaultR
 
 export const VAULT_COCKPIT_VIEW_TYPE = "vault-cockpit-view";
 
+const FALLBACK_GIT_PREFLIGHT_COMMAND: VaultCommandDefinition = {
+  id: "git-preflight",
+  label: "Git Preflight",
+  description: "Fetch origin and safely fast-forward master.",
+  args: ["git-preflight"],
+};
+
 interface LogEntry {
   stream: VaultStream | "system";
   text: string;
@@ -80,10 +87,31 @@ export class VaultCockpitView extends ItemView {
           "omp-vault-cockpit-primary-command",
           command.id === "refresh" ? "omp-vault-cockpit-refresh" : "",
           command.id === "sync" ? "omp-vault-cockpit-sync-icon" : "",
-        ].filter(Boolean).join(" ")
+        ].filter(Boolean).join(" "),
+        command.id === "sync" ? "sticky-note" : undefined
       );
       this.buttons.set(command.id, commandButton);
     }
+
+    const preflightCommand = this.findCommand("git-preflight") ?? FALLBACK_GIT_PREFLIGHT_COMMAND;
+    const preflightButton = this.createCommandButton(
+      primaryActions,
+      preflightCommand,
+      "omp-vault-cockpit-primary-command omp-vault-cockpit-icon-command",
+      "cloud-download"
+    );
+    this.buttons.set(preflightCommand.id, preflightButton);
+
+    const commitButton = primaryActions.createEl("button", {
+      cls: "omp-vault-cockpit-command omp-vault-cockpit-primary-command omp-vault-cockpit-icon-command",
+      attr: {
+        title: "Commit all current Vault changes.",
+        "aria-label": "Commit all current Vault changes.",
+      },
+    });
+    setIcon(commitButton, "cloud-upload");
+    commitButton.addEventListener("click", () => this.runGitCommit());
+    this.buttons.set("git-commit", commitButton);
 
     this.statusEl = primaryRow.createDiv({ cls: "omp-vault-cockpit-status", text: labelForStatus(this.status) });
     this.statusEl.dataset.status = this.status;
@@ -114,18 +142,22 @@ export class VaultCockpitView extends ItemView {
     this.renderStatus();
   }
 
-  private createCommandButton(parent: HTMLElement, command: VaultCommandDefinition, extraClass = ""): HTMLButtonElement {
-    const iconOnly = command.id === "sync";
+  private createCommandButton(
+    parent: HTMLElement,
+    command: VaultCommandDefinition,
+    extraClass = "",
+    icon?: IconName
+  ): HTMLButtonElement {
     const button = parent.createEl("button", {
       cls: `omp-vault-cockpit-command ${extraClass}`.trim(),
-      text: iconOnly ? "" : command.label,
+      text: icon ? "" : command.label,
       attr: {
         title: command.description,
         "aria-label": command.description,
       },
     });
-    if (iconOnly) {
-      setIcon(button, "sticky-note");
+    if (icon) {
+      setIcon(button, icon);
     }
     button.addEventListener("click", () => {
       this.runCommand(command);
@@ -274,11 +306,6 @@ export class VaultCockpitView extends ItemView {
       this.outputExpanded = !this.outputExpanded;
       this.renderOutput();
     });
-
-    const commitButton = row.createEl("button", { cls: "omp-vault-cockpit-git-commit", text: "Git Commit" });
-    commitButton.disabled = this.status === "running";
-    commitButton.addEventListener("click", () => this.runGitCommit());
-    this.buttons.set("git-commit", commitButton);
 
     this.statusEl = row.createDiv({ cls: "omp-vault-cockpit-status", text: labelForStatus(this.status) });
     this.statusEl.dataset.status = this.status;

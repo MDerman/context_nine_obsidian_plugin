@@ -74,6 +74,13 @@
   flex: 1 1 auto;
 }
 
+.omp-vault-cockpit-refresh {
+  flex: 1 1 64px;
+  min-width: 48px;
+  padding-right: 4px;
+  padding-left: 4px;
+}
+
 .omp-vault-cockpit-sync-icon {
   display: inline-flex;
   flex: 0 0 30px;
@@ -84,7 +91,18 @@
   padding: 0;
 }
 
-.omp-vault-cockpit-sync-icon svg {
+.omp-vault-cockpit-icon-command {
+  display: inline-flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
+}
+
+.omp-vault-cockpit-sync-icon svg,
+.omp-vault-cockpit-icon-command svg {
   width: 16px;
   height: 16px;
 }
@@ -143,12 +161,6 @@
 }
 
 .omp-vault-cockpit-output-toggle {
-  min-height: 24px;
-  padding: 2px 7px;
-  font-size: var(--font-ui-smaller);
-}
-
-.omp-vault-cockpit-git-commit {
   min-height: 24px;
   padding: 2px 7px;
   font-size: var(--font-ui-smaller);

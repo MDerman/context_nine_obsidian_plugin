@@ -45,7 +45,7 @@ The marker is the durable fallback when Obsidian or its CLI is unavailable. The 
 
 ## Vault Command Center
 
-Vault Command Center shows local command output in the right sidebar and keeps a Git Commit action close at hand. Day-to-day vault commands live in the Obsidian command palette and are loaded from the vault command metadata file.
+Vault Command Center shows local command output in the right sidebar and keeps Git preflight and commit actions in its always-visible primary row. Day-to-day vault commands live in the Obsidian command palette and are loaded from the vault command metadata file.
 
 Output streams live into the panel with stdout, stderr, status, exit code, and timestamps visible after completion.
 
