@@ -2,6 +2,8 @@ import json
 import os
 from pathlib import Path
 
+import pytest
+
 from context_nine_vault_tui.catalog import FALLBACK_COMMANDS, parse_catalog
 
 
@@ -47,12 +49,10 @@ def test_invalid_metadata_falls_back():
 
 
 def test_vault_command_metadata_descriptions_are_short():
-    vault_root = Path(
-        os.environ.get(
-            "VAULT_ROOT",
-            "/Users/matthewderman/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault",
-        )
-    )
+    configured_root = os.environ.get("VAULT_ROOT")
+    if configured_root is None:
+        pytest.skip("VAULT_ROOT is required for the cross-repository catalog contract")
+    vault_root = Path(configured_root)
     path = vault_root / "_system/commands/vault-commands.json"
     commands = json.loads(path.read_text(encoding="utf-8"))
 

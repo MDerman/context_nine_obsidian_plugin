@@ -65,6 +65,8 @@ uv run pytest
 uv run vault-tui --vault-root "$(vault root)"
 ```
 
+The TUI ships with the public Context Vault and follows its dependency installer. It is not a standalone `ctx9` launcher component because it has no useful lifecycle without a Vault.
+
 ## Development
 
 ```bash

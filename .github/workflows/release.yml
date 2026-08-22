@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags: ["*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+      - run: test "$(node -p 'require("./manifest.json").version')" = "$GITHUB_REF_NAME"
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: uv run --project python pytest
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            main.js
+            manifest.json
+            styles.css
