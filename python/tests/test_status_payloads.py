@@ -5,13 +5,15 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
 
-VAULT_ROOT = Path(
-    os.environ.get(
-        "VAULT_ROOT",
-        "/Users/matthewderman/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault",
-    )
+
+CONFIGURED_VAULT_ROOT = os.environ.get("VAULT_ROOT")
+pytestmark = pytest.mark.skipif(
+    CONFIGURED_VAULT_ROOT is None,
+    reason="VAULT_ROOT is required for cross-repository status contracts",
 )
+VAULT_ROOT = Path(CONFIGURED_VAULT_ROOT or "/missing-vault-root")
 
 
 def load_module(path: Path, name: str):
